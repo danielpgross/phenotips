@@ -29,11 +29,17 @@ import org.xwiki.observation.EventListener;
 import org.xwiki.observation.event.Event;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
+
+import com.xpn.xwiki.doc.XWikiDocument;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 
 /**
  * Listens for changes in patient documents to check for new or changed links between patients.
@@ -60,7 +66,24 @@ public class PatientLinkListener implements EventListener
     {
         try {
             Patient patient = (Patient) p;
-            familyUtils.getFamily(patient);
+            Collection<String> relatives = familyUtils.getRelatives(patient);
+            if (!relatives.isEmpty()) {
+                XWikiDocument familyDoc = familyUtils.getFamilyDoc(patient);
+                JSONObject family;
+                if (familyDoc == null || familyDoc.isNew()) {
+                    // todo. create a family document, JSON and pointer
+                    familyDoc = familyUtils.createFamilyDoc(patient);
+                    family = familyUtils.createBlankFamily();
+                } else {
+                    family = familyUtils.getFamily(familyDoc);
+                }
+                // replacing whatever relatives were in the list part of the family. Has no effect on the tree/pedigree
+                JSONArray updatedList = new JSONArray();
+                updatedList.addAll(relatives);
+                family.put("list", updatedList);
+
+                familyUtils.storeFamily(familyDoc, updatedList);
+            }   
         } catch (Exception ex) {
             // todo.
         }
