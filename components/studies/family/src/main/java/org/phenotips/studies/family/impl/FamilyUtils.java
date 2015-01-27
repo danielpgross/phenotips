@@ -24,7 +24,6 @@ import org.phenotips.studies.family.api.Family;
 
 import org.xwiki.component.annotation.Component;
 import org.xwiki.model.EntityType;
-import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.EntityReference;
 import org.xwiki.query.Query;
 import org.xwiki.query.QueryException;
@@ -37,6 +36,7 @@ import java.util.List;
 import java.util.Set;
 
 import javax.inject.Inject;
+import javax.inject.Provider;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -44,7 +44,6 @@ import com.xpn.xwiki.XWiki;
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.doc.XWikiDocument;
-import com.xpn.xwiki.internal.XWikiContextProvider;
 import com.xpn.xwiki.objects.BaseObject;
 
 import net.sf.json.JSON;
@@ -56,12 +55,16 @@ public class FamilyUtils implements Family
 {
     private final String prefix = "F";
 
-    private final EntityReference pointerReference = new EntityReference("FamilyPointer", EntityType.OBJECT);
+    private final EntityReference phenoTipsDataSpace = new EntityReference("PhenoTips", EntityType.SPACE);
 
-    private final EntityReference relativeReference = new EntityReference("RelativeClass", EntityType.OBJECT);
+    private final EntityReference pointerReference =
+        new EntityReference("FamilyPointer", EntityType.DOCUMENT, phenoTipsDataSpace);
+
+    private final EntityReference relativeReference =
+        new EntityReference("RelativeClass", EntityType.DOCUMENT, phenoTipsDataSpace);
 
     @Inject
-    XWikiContextProvider provider;
+    Provider<XWikiContext> provider;
 
     /** Runs queries for finding families. */
     @Inject
@@ -77,18 +80,18 @@ public class FamilyUtils implements Family
     /**
      * @return String could be null in case there is no pointer found
      */
-    private String getFamilyPointer(DocumentReference docRef) throws XWikiException
+    private String getFamilyPointer(XWikiDocument doc) throws XWikiException
     {
-        if (docRef == null) {
+        if (doc == null) {
             throw new IllegalArgumentException("Document reference for the patient was null");
         }
-        BaseObject familyPointer = getDoc(docRef).getXObject(pointerReference);
-        return familyPointer.getStringValue("pointer");
+        BaseObject familyPointer = doc.getXObject(pointerReference);
+        return familyPointer != null ? familyPointer.getStringValue("pointer") : null;
     }
 
-    public XWikiDocument getFamilyDoc(Patient patient) throws XWikiException
+    public XWikiDocument getFamilyDoc(XWikiDocument patient) throws XWikiException
     {
-        String pointer = getFamilyPointer(patient.getDocument());
+        String pointer = getFamilyPointer(patient);
         if (pointer != null) {
             EntityReference pointerRef = new EntityReference(pointer, EntityType.DOCUMENT);
             return getDoc(pointerRef);
@@ -113,9 +116,8 @@ public class FamilyUtils implements Family
      *
      * @return collection of patient ids that the patient has links to on their report
      */
-    public Collection<String> getRelatives(Patient patient) throws XWikiException
+    public Collection<String> getRelatives(XWikiDocument patientDoc) throws XWikiException
     {
-        XWikiDocument patientDoc = getDoc(patient.getDocument());
         if (patientDoc != null) {
             List<BaseObject> relativeObjects = patientDoc.getXObjects(relativeReference);
             Set<String> relativeIds = new HashSet<String>();
@@ -141,7 +143,7 @@ public class FamilyUtils implements Family
         wiki.saveDocument(family, context);
     }
 
-    public synchronized XWikiDocument createFamilyDoc(Patient patient) throws Exception
+    public synchronized XWikiDocument createFamilyDoc(XWikiDocument patientDoc) throws Exception
     {
         XWikiContext context = provider.get();
         XWiki wiki = context.getWiki();
@@ -152,7 +154,6 @@ public class FamilyUtils implements Family
             throw new Exception("The new family id was already taken.");
         } else {
             wiki.saveDocument(nextDoc, context);
-            XWikiDocument patientDoc = getDoc(patient.getDocument());
             BaseObject pointer = patientDoc.getXObject(pointerReference);
             if (pointer == null) {
                 pointer = patientDoc.newXObject(pointerReference, context);

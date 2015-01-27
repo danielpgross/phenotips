@@ -19,7 +19,6 @@
  */
 package org.phenotips.studies.family.listener;
 
-import org.phenotips.data.Patient;
 import org.phenotips.data.events.PatientChangedEvent;
 import org.phenotips.data.events.PatientCreatedEvent;
 import org.phenotips.studies.family.api.Family;
@@ -36,6 +35,8 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import org.slf4j.Logger;
+
 import com.xpn.xwiki.doc.XWikiDocument;
 
 import net.sf.json.JSONArray;
@@ -51,6 +52,9 @@ import net.sf.json.JSONObject;
 public class PatientLinkListener implements EventListener
 {
     @Inject
+    private Logger logger;
+
+    @Inject
     private Family familyUtils;
 
     @Override
@@ -65,13 +69,12 @@ public class PatientLinkListener implements EventListener
     public void onEvent(Event event, Object p, Object u)
     {
         try {
-            Patient patient = (Patient) p;
+            XWikiDocument patient = (XWikiDocument) p;
             Collection<String> relatives = familyUtils.getRelatives(patient);
             if (!relatives.isEmpty()) {
                 XWikiDocument familyDoc = familyUtils.getFamilyDoc(patient);
                 JSONObject family;
                 if (familyDoc == null || familyDoc.isNew()) {
-                    // todo. create a family document, JSON and pointer
                     familyDoc = familyUtils.createFamilyDoc(patient);
                     family = familyUtils.createBlankFamily();
                 } else {
@@ -85,7 +88,7 @@ public class PatientLinkListener implements EventListener
                 familyUtils.storeFamily(familyDoc, updatedList);
             }   
         } catch (Exception ex) {
-            // todo.
+            logger.error("Could not process patient's family information.", ex.getCause());
         }
     }
 }
