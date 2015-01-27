@@ -17,10 +17,10 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.phenotips.studies.family.impl;
+package org.phenotips.studies.family.content;
 
+import org.phenotips.Constants;
 import org.phenotips.data.Patient;
-import org.phenotips.studies.family.api.Family;
 
 import org.xwiki.component.annotation.Component;
 import org.xwiki.model.EntityType;
@@ -53,15 +53,13 @@ import net.sf.json.JSONObject;
 @Component
 public class FamilyUtils implements Family
 {
-    private final String prefix = "F";
+    private final String prefix = "FAM";
 
-    private final EntityReference phenoTipsDataSpace = new EntityReference("PhenoTips", EntityType.SPACE);
-
-    private final EntityReference pointerReference =
-        new EntityReference("FamilyPointer", EntityType.DOCUMENT, phenoTipsDataSpace);
+    private final EntityReference FAMILY_REFERENCE =
+        new EntityReference("FamilyPointer", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
 
     private final EntityReference relativeReference =
-        new EntityReference("RelativeClass", EntityType.DOCUMENT, phenoTipsDataSpace);
+        new EntityReference("RelativeClass", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
 
     @Inject
     Provider<XWikiContext> provider;
@@ -80,35 +78,38 @@ public class FamilyUtils implements Family
     /**
      * @return String could be null in case there is no pointer found
      */
-    private String getFamilyPointer(XWikiDocument doc) throws XWikiException
+    private EntityReference getFamilyPointer(XWikiDocument doc) throws XWikiException
     {
         if (doc == null) {
             throw new IllegalArgumentException("Document reference for the patient was null");
         }
-        BaseObject familyPointer = doc.getXObject(pointerReference);
-        return familyPointer != null ? familyPointer.getStringValue("pointer") : null;
+        BaseObject familyPointer = doc.getXObject(FAMILY_REFERENCE);
+        if (familyPointer != null) {
+            String familyDocName = familyPointer.getStringValue("pointer");
+            return new EntityReference(familyDocName, EntityType.DOCUMENT, Patient.DEFAULT_DATA_SPACE);
+        }
+        return null;
     }
 
     public XWikiDocument getFamilyDoc(XWikiDocument patient) throws XWikiException
     {
-        String pointer = getFamilyPointer(patient);
+        EntityReference pointer = getFamilyPointer(patient);
         if (pointer != null) {
-            EntityReference pointerRef = new EntityReference(pointer, EntityType.DOCUMENT);
-            return getDoc(pointerRef);
+            return getDoc(pointer);
         }
         return null;
     }
 
     /**
      * @param doc which contains the JSON family object
-     * @return The content of the family document, or null if there is no family or it was not found.
+     * @return The content of the family document, or a new blank family if there is no family or it was not found.
      */
     public JSONObject getFamily(XWikiDocument doc)
     {
         if (doc != null) {
             return JSONObject.fromObject(doc.getContent());
         }
-        return new JSONObject();
+        return createBlankFamily();
     }
 
     /**
@@ -154,16 +155,16 @@ public class FamilyUtils implements Family
             throw new Exception("The new family id was already taken.");
         } else {
             wiki.saveDocument(nextDoc, context);
-            BaseObject pointer = patientDoc.getXObject(pointerReference);
+            BaseObject pointer = patientDoc.getXObject(FAMILY_REFERENCE);
             if (pointer == null) {
-                pointer = patientDoc.newXObject(pointerReference, context);
+                pointer = patientDoc.newXObject(FAMILY_REFERENCE, context);
             }
             pointer.set("pointer", nextId, context);
         }
         return nextDoc;
     }
 
-    public JSONObject createBlankFamily()
+    private JSONObject createBlankFamily()
     {
         JSONObject family = new JSONObject();
         family.put("list", new JSONArray());

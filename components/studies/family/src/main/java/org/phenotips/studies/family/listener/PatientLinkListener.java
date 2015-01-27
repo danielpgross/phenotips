@@ -20,8 +20,7 @@
 package org.phenotips.studies.family.listener;
 
 import org.phenotips.data.events.PatientChangedEvent;
-import org.phenotips.data.events.PatientCreatedEvent;
-import org.phenotips.studies.family.api.Family;
+import org.phenotips.studies.family.content.Family;
 
 import org.xwiki.component.annotation.Component;
 import org.xwiki.observation.EventListener;
@@ -43,8 +42,8 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 /**
- * Listens for changes in patient documents to check for new or changed links between patients.
- * Creates family pages and keeps them updated.
+ * Listens for changes in patient documents to check for new or changed links between patients. Creates family pages and
+ * keeps them updated.
  */
 @Component
 @Singleton
@@ -58,10 +57,14 @@ public class PatientLinkListener implements EventListener
     private Family familyUtils;
 
     @Override
-    public String getName() { return "patientlinklistener"; }
+    public String getName()
+    {
+        return "patientlinklistener";
+    }
 
-    public List<Event> getEvents() {
-        return Arrays.<Event>asList(new PatientCreatedEvent(), new PatientChangedEvent());
+    public List<Event> getEvents()
+    {
+        return Arrays.<Event>asList(new PatientChangedEvent());
     }
 
     /** Receives a {@link org.phenotips.data.Patient} and {@link org.xwiki.users.User} objects. */
@@ -73,12 +76,12 @@ public class PatientLinkListener implements EventListener
             Collection<String> relatives = familyUtils.getRelatives(patient);
             if (!relatives.isEmpty()) {
                 XWikiDocument familyDoc = familyUtils.getFamilyDoc(patient);
-                JSONObject family;
+                // if the family is not found, will create a new blank one.
+                // todo. if the family contents do exist, but there is a failure to get them, this listener will
+                // todo. overwrite the existing pedigree, just to update the relatives.
+                JSONObject family = familyUtils.getFamily(familyDoc);
                 if (familyDoc == null || familyDoc.isNew()) {
                     familyDoc = familyUtils.createFamilyDoc(patient);
-                    family = familyUtils.createBlankFamily();
-                } else {
-                    family = familyUtils.getFamily(familyDoc);
                 }
                 // replacing whatever relatives were in the list part of the family. Has no effect on the tree/pedigree
                 JSONArray updatedList = new JSONArray();
@@ -86,9 +89,9 @@ public class PatientLinkListener implements EventListener
                 family.put("list", updatedList);
 
                 familyUtils.storeFamily(familyDoc, updatedList);
-            }   
+            }
         } catch (Exception ex) {
-            logger.error("Could not process patient's family information.", ex.getCause());
+            logger.error("Could not process patient's family information.", ex.getMessage());
         }
     }
 }

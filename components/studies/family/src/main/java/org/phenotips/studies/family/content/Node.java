@@ -17,29 +17,27 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.phenotips.studies.family.api.script;
+package org.phenotips.studies.family.content;
 
-import org.xwiki.component.annotation.Component;
-import org.xwiki.script.service.ScriptService;
-
-import javax.inject.Named;
-import javax.inject.Singleton;
-
-import com.xpn.xwiki.doc.XWikiDocument;
-
-@Component
-@Singleton
-@Named("family")
-public class FamilyScriptService implements ScriptService
+public class Node
 {
-    /**
-     *
-     * @param thisPatient
-     * @param otherId
-     * @return true if the patients can be linked without additional input, false otherwise
-     */
-    public Boolean linkPatients(XWikiDocument thisPatient, String otherId)
+    private String motherId;
+
+    private String fatherId;
+
+    public Node(String motherId, String fatherId)
     {
-        return false;
+        this.motherId = motherId;
+        this.fatherId = fatherId;
+    }
+
+    public String getMotherId()
+    {
+        return this.motherId;
+    }
+
+    public String getFatherId()
+    {
+        return this.fatherId;
     }
 }

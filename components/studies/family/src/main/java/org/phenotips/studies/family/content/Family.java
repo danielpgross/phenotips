@@ -1,4 +1,4 @@
-package org.phenotips.studies.family.api;
+package org.phenotips.studies.family.content;
 
 import org.xwiki.component.annotation.Role;
 
@@ -23,5 +23,5 @@ public interface Family
 
     XWikiDocument createFamilyDoc(XWikiDocument patient) throws Exception;
 
-    public JSONObject createBlankFamily();
+//    public JSONObject createBlankFamily();
 }
