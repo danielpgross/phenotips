@@ -24,6 +24,7 @@ import org.phenotips.data.Patient;
 
 import org.xwiki.component.annotation.Component;
 import org.xwiki.model.EntityType;
+import org.xwiki.model.reference.DocumentReferenceResolver;
 import org.xwiki.model.reference.EntityReference;
 import org.xwiki.query.Query;
 import org.xwiki.query.QueryException;
@@ -36,7 +37,9 @@ import java.util.List;
 import java.util.Set;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Provider;
+import javax.naming.NamingException;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -51,14 +54,17 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 @Component
-public class FamilyUtils implements Family
+public class FamilyUtilsImpl implements org.phenotips.studies.family.FamilyUtils
 {
-    private final String prefix = "FAM";
+    private final String PREFIX = "FAM";
 
     private final EntityReference FAMILY_REFERENCE =
-        new EntityReference("FamilyPointer", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
+        new EntityReference("FamilyReference", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
 
-    private final EntityReference relativeReference =
+    private final EntityReference FAMILY_CLASS =
+        new EntityReference("FamilyClass", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
+
+    private final EntityReference RELATIVEREFERENCE =
         new EntityReference("RelativeClass", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
 
     @Inject
@@ -67,6 +73,10 @@ public class FamilyUtils implements Family
     /** Runs queries for finding families. */
     @Inject
     private QueryManager qm;
+
+    @Inject
+    @Named("current")
+    private DocumentReferenceResolver<String> referenceResolver;
 
     private XWikiDocument getDoc(EntityReference docRef) throws XWikiException
     {
@@ -86,7 +96,7 @@ public class FamilyUtils implements Family
         BaseObject familyPointer = doc.getXObject(FAMILY_REFERENCE);
         if (familyPointer != null) {
             String familyDocName = familyPointer.getStringValue("pointer");
-            return new EntityReference(familyDocName, EntityType.DOCUMENT, Patient.DEFAULT_DATA_SPACE);
+            return referenceResolver.resolve(familyDocName);
         }
         return null;
     }
@@ -104,7 +114,7 @@ public class FamilyUtils implements Family
      * @param doc which contains the JSON family object
      * @return The content of the family document, or a new blank family if there is no family or it was not found.
      */
-    public JSONObject getFamily(XWikiDocument doc)
+    public JSONObject getFamilyRepresentation(XWikiDocument doc)
     {
         if (doc != null) {
             return JSONObject.fromObject(doc.getContent());
@@ -120,7 +130,7 @@ public class FamilyUtils implements Family
     public Collection<String> getRelatives(XWikiDocument patientDoc) throws XWikiException
     {
         if (patientDoc != null) {
-            List<BaseObject> relativeObjects = patientDoc.getXObjects(relativeReference);
+            List<BaseObject> relativeObjects = patientDoc.getXObjects(RELATIVEREFERENCE);
             Set<String> relativeIds = new HashSet<String>();
             for (BaseObject relative : relativeObjects) {
                 String id = relative.getStringValue("relative_of");
@@ -144,22 +154,26 @@ public class FamilyUtils implements Family
         wiki.saveDocument(family, context);
     }
 
-    public synchronized XWikiDocument createFamilyDoc(XWikiDocument patientDoc) throws Exception
+    /** Creates a new family document and set that new document as the patients family. */
+    public synchronized XWikiDocument createFamilyDoc(XWikiDocument patientDoc) throws NamingException, QueryException, XWikiException
     {
         XWikiContext context = provider.get();
         XWiki wiki = context.getWiki();
-        String nextId = String.format("%s%7d", prefix, getLastUsedId() + 1);
-        EntityReference nextRef = new EntityReference(nextId, EntityType.DOCUMENT, Patient.DEFAULT_DATA_SPACE);
+        long nextId = getLastUsedId() + 1;
+        String nextStringId = String.format("%s%7d", PREFIX, nextId);
+        EntityReference nextRef = new EntityReference(nextStringId, EntityType.DOCUMENT, Patient.DEFAULT_DATA_SPACE);
         XWikiDocument nextDoc = wiki.getDocument(nextRef, context);
         if (!nextDoc.isNew()) {
-            throw new Exception("The new family id was already taken.");
+            throw new NamingException("The new family id was already taken.");
         } else {
             wiki.saveDocument(nextDoc, context);
             BaseObject pointer = patientDoc.getXObject(FAMILY_REFERENCE);
+            BaseObject familyObject = patientDoc.newXObject(FAMILY_CLASS);
+            familyObject.set("identifier", nextId, context);
             if (pointer == null) {
                 pointer = patientDoc.newXObject(FAMILY_REFERENCE, context);
             }
-            pointer.set("pointer", nextId, context);
+            pointer.set("pointer", nextStringId, context);
         }
         return nextDoc;
     }

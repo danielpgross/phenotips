@@ -20,7 +20,7 @@
 package org.phenotips.studies.family.listener;
 
 import org.phenotips.data.events.PatientChangedEvent;
-import org.phenotips.studies.family.content.Family;
+import org.phenotips.studies.family.FamilyUtils;
 
 import org.xwiki.component.annotation.Component;
 import org.xwiki.observation.EventListener;
@@ -54,7 +54,7 @@ public class PatientLinkListener implements EventListener
     private Logger logger;
 
     @Inject
-    private Family familyUtils;
+    private FamilyUtils familyUtilsImpl;
 
     @Override
     public String getName()
@@ -73,25 +73,25 @@ public class PatientLinkListener implements EventListener
     {
         try {
             XWikiDocument patient = (XWikiDocument) p;
-            Collection<String> relatives = familyUtils.getRelatives(patient);
+            Collection<String> relatives = familyUtilsImpl.getRelatives(patient);
             if (!relatives.isEmpty()) {
-                XWikiDocument familyDoc = familyUtils.getFamilyDoc(patient);
+                XWikiDocument familyDoc = familyUtilsImpl.getFamilyDoc(patient);
                 // if the family is not found, will create a new blank one.
                 // todo. if the family contents do exist, but there is a failure to get them, this listener will
                 // todo. overwrite the existing pedigree, just to update the relatives.
-                JSONObject family = familyUtils.getFamily(familyDoc);
+                JSONObject family = familyUtilsImpl.getFamilyRepresentation(familyDoc);
                 if (familyDoc == null || familyDoc.isNew()) {
-                    familyDoc = familyUtils.createFamilyDoc(patient);
+                    familyDoc = familyUtilsImpl.createFamilyDoc(patient);
                 }
                 // replacing whatever relatives were in the list part of the family. Has no effect on the tree/pedigree
                 JSONArray updatedList = new JSONArray();
                 updatedList.addAll(relatives);
                 family.put("list", updatedList);
 
-                familyUtils.storeFamily(familyDoc, updatedList);
+                familyUtilsImpl.storeFamily(familyDoc, updatedList);
             }
         } catch (Exception ex) {
-            logger.error("Could not process patient's family information.", ex.getMessage());
+            logger.error("Could not process patient's family information. {}", ex.getMessage());
         }
     }
 }
