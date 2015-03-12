@@ -98,7 +98,8 @@ NodeMenu = Class.create({
         // date
         this.form.select('.fuzzy-date').each(function(item) {
           if (!item.__datePicker) {
-            item.__datePicker = new PhenoTips.widgets.FuzzyDatePicker(item);
+            var inputMode = editor.getPreferencesManager().getConfigurationOption("dateEditFormat");
+            item.__datePicker = new PhenoTips.widgets.PedigreeFuzzyDatePicker(item, inputMode);
           }
         });
         // disease
@@ -505,7 +506,7 @@ NodeMenu = Class.create({
         },
         'date-picker' : function (data) {
             var result = this._generateEmptyField(data);
-            var datePicker = new Element('input', {type: 'text', 'class': 'fuzzy-date', name: data.name, 'title': data.format, alt : '' });
+            var datePicker = new Element('input', {type: 'text', 'class': 'fuzzy-date', name: data.name, 'title': data.format || '', alt : '' });
             result.inputsContainer.insert(datePicker);
             datePicker._getValue = function() { /*console.log("DATE UPDATE: " + this.value);*/ return [new PedigreeDate(JSON.parse(this.value))]; }.bind(datePicker);
             this._attachFieldEventListeners(datePicker, ['xwiki:date:changed']);
@@ -918,13 +919,15 @@ NodeMenu = Class.create({
             } else {
                 if (value.year) {
                     year = value.year.toString();
-                    if (value.month) {
-                        month = value.month.toString();
-                        if (value.day) {
-                            day = value.day.toString();
-                        }
-                    }
                 }
+            }
+
+            var dmyInputMode = (editor.getPreferencesManager().getConfigurationOption("dateEditFormat") == "DMY");
+            if ((dmyInputMode || value.year) && value.month) {
+                month = value.month.toString();
+            }
+            if ((dmyInputMode || (value.year && value.month)) && value.day) {
+                day = value.day.toString();
             }
 
             var updated = false;
