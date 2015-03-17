@@ -33,6 +33,8 @@ import org.slf4j.Logger;
 import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.doc.XWikiDocument;
 
+import net.sf.json.JSONObject;
+
 @Component
 @Singleton
 @Named("family")
@@ -73,5 +75,15 @@ public class FamilyScriptService implements ScriptService
             logger.error("Could not get patient's family {}", ex.getMessage());
         }
         return "";
+    }
+
+    public int processPedigree(String json, String probandId) {
+        try {
+            this.utils.processPatientPedigree(JSONObject.fromObject(json), probandId);
+            return 200;
+
+        } catch (Exception ex) {
+            return 500;
+        }
     }
 }

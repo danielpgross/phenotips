@@ -24,6 +24,7 @@ import org.phenotips.data.Patient;
 
 import org.xwiki.component.annotation.Component;
 import org.xwiki.model.EntityType;
+import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.DocumentReferenceResolver;
 import org.xwiki.model.reference.EntityReference;
 import org.xwiki.query.Query;
@@ -61,9 +62,6 @@ public class FamilyUtilsImpl implements org.phenotips.studies.family.FamilyUtils
     private final EntityReference FAMILY_REFERENCE =
         new EntityReference("FamilyReference", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
 
-    private final EntityReference FAMILY_CLASS =
-        new EntityReference("FamilyClass", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
-
     private final EntityReference RELATIVEREFERENCE =
         new EntityReference("RelativeClass", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
 
@@ -88,24 +86,35 @@ public class FamilyUtilsImpl implements org.phenotips.studies.family.FamilyUtils
     /**
      * @return String could be null in case there is no pointer found
      */
-    private EntityReference getFamilyPointer(XWikiDocument doc) throws XWikiException
+    private EntityReference getFamilyReference(XWikiDocument doc) throws XWikiException
     {
         if (doc == null) {
             throw new IllegalArgumentException("Document reference for the patient was null");
         }
         BaseObject familyPointer = doc.getXObject(FAMILY_REFERENCE);
         if (familyPointer != null) {
-            String familyDocName = familyPointer.getStringValue("pointer");
-            return referenceResolver.resolve(familyDocName);
+            String familyDocName = familyPointer.getStringValue("reference");
+            if (StringUtils.isNotBlank(familyDocName)) {
+                return referenceResolver.resolve(familyDocName);
+            }
         }
         return null;
     }
 
+    // fixme make it throw exceptions
+    public void processPatientPedigree(JSON json, String patientId) throws XWikiException
+    {
+        DocumentReference patientRef = referenceResolver.resolve(patientId);
+        XWikiDocument patientDoc = getDoc(patientRef);
+        XWikiDocument familyDoc = this.getFamilyDoc(patientDoc);
+        this.storeFamilyRepresentation(familyDoc, json);
+    }
+
     public XWikiDocument getFamilyDoc(XWikiDocument patient) throws XWikiException
     {
-        EntityReference pointer = getFamilyPointer(patient);
-        if (pointer != null) {
-            return getDoc(pointer);
+        EntityReference reference = getFamilyReference(patient);
+        if (reference != null) {
+            return getDoc(reference);
         }
         return null;
     }
@@ -131,6 +140,9 @@ public class FamilyUtilsImpl implements org.phenotips.studies.family.FamilyUtils
     {
         if (patientDoc != null) {
             List<BaseObject> relativeObjects = patientDoc.getXObjects(RELATIVEREFERENCE);
+            if (relativeObjects == null) {
+                return Collections.emptySet();
+            }
             Set<String> relativeIds = new HashSet<String>();
             for (BaseObject relative : relativeObjects) {
                 String id = relative.getStringValue("relative_of");
@@ -146,7 +158,7 @@ public class FamilyUtilsImpl implements org.phenotips.studies.family.FamilyUtils
     /**
      * Will store the passed json in the document, or if the family document is null will create one
      */
-    public void storeFamily(XWikiDocument family, JSON familyContents) throws XWikiException
+    public void storeFamilyRepresentation(XWikiDocument family, JSON familyContents) throws XWikiException
     {
         XWikiContext context = provider.get();
         XWiki wiki = context.getWiki();
@@ -154,26 +166,29 @@ public class FamilyUtilsImpl implements org.phenotips.studies.family.FamilyUtils
         wiki.saveDocument(family, context);
     }
 
-    /** Creates a new family document and set that new document as the patients family. */
-    public synchronized XWikiDocument createFamilyDoc(XWikiDocument patientDoc) throws NamingException, QueryException, XWikiException
+    /** Creates a new family document and set that new document as the patients family, overwriting the existing
+     * family. */
+    public synchronized XWikiDocument createFamilyDoc(XWikiDocument patientDoc)
+        throws NamingException, QueryException, XWikiException
     {
         XWikiContext context = provider.get();
         XWiki wiki = context.getWiki();
         long nextId = getLastUsedId() + 1;
-        String nextStringId = String.format("%s%7d", PREFIX, nextId);
+        String nextStringId = String.format("%s%07d", PREFIX, nextId);
         EntityReference nextRef = new EntityReference(nextStringId, EntityType.DOCUMENT, Patient.DEFAULT_DATA_SPACE);
         XWikiDocument nextDoc = wiki.getDocument(nextRef, context);
         if (!nextDoc.isNew()) {
             throw new NamingException("The new family id was already taken.");
         } else {
-            wiki.saveDocument(nextDoc, context);
             BaseObject pointer = patientDoc.getXObject(FAMILY_REFERENCE);
-            BaseObject familyObject = patientDoc.newXObject(FAMILY_CLASS);
+            BaseObject familyObject = nextDoc.newXObject(FAMILY_CLASS, context);
             familyObject.set("identifier", nextId, context);
             if (pointer == null) {
                 pointer = patientDoc.newXObject(FAMILY_REFERENCE, context);
             }
-            pointer.set("pointer", nextStringId, context);
+            pointer.set("reference", nextStringId, context);
+            wiki.saveDocument(nextDoc, context);
+            wiki.saveDocument(patientDoc, context);
         }
         return nextDoc;
     }

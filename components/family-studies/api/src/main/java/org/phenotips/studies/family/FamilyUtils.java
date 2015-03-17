@@ -19,7 +19,11 @@
  */
 package org.phenotips.studies.family;
 
+import org.phenotips.Constants;
+
 import org.xwiki.component.annotation.Role;
+import org.xwiki.model.EntityType;
+import org.xwiki.model.reference.EntityReference;
 import org.xwiki.query.QueryException;
 
 import java.util.Collection;
@@ -35,15 +39,18 @@ import net.sf.json.JSONObject;
 @Role
 public interface FamilyUtils
 {
+    final EntityReference FAMILY_CLASS =
+        new EntityReference("FamilyClass", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
+
     XWikiDocument getFamilyDoc(XWikiDocument patient) throws XWikiException;
 
     JSONObject getFamilyRepresentation(XWikiDocument doc);
 
     Collection<String> getRelatives(XWikiDocument patient) throws XWikiException;
 
-    void storeFamily(XWikiDocument family, JSON familyContents) throws XWikiException;
+//    void storeFamilyRepresentation(XWikiDocument family, JSON familyContents) throws XWikiException;
 
     XWikiDocument createFamilyDoc(XWikiDocument patient) throws NamingException, QueryException, XWikiException;
 
-//    public JSONObject createBlankFamily();
+    public void processPatientPedigree(JSON json, String patientId) throws XWikiException;
 }
