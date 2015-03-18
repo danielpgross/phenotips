@@ -28,8 +28,10 @@ import org.xwiki.observation.event.Event;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -41,6 +43,7 @@ import org.slf4j.Logger;
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.BaseObject;
+import com.xpn.xwiki.objects.DBStringListProperty;
 
 /**
  * Listens for changes in patient documents to check for new or changed links between patients. Creates family pages and
@@ -84,25 +87,24 @@ public class PatientLinkListener implements EventListener
                 // if the family is not found, will create a new blank one.
                 // todo. if the family contents do exist, but there is a failure to get them, this listener will
                 // todo. overwrite the existing pedigree, just to update the relatives.
-                if (familyDoc == null || familyDoc.isNew()) {
+                // todo. should I check for isNew?
+                if (familyDoc == null) {
                     familyDoc = familyUtilsImpl.createFamilyDoc(patient);
                     familyObject = familyDoc.newXObject(FamilyUtils.FAMILY_CLASS, provider.get());
                 } else {
                     familyObject = familyDoc.getXObject(FamilyUtils.FAMILY_CLASS);
                 }
-//
 
                 // replacing whatever relatives were in the list part of the family. Has no effect on the tree/pedigree
-                List<String> updatedList = (List<String>) familyObject.get("members");
-                if (updatedList == null) {
-                    updatedList = Collections.emptyList();
-                }
-                updatedList.addAll(relatives);
+                DBStringListProperty xwikiRelativesList = (DBStringListProperty) familyObject.get("members");
+                Set<String> updatedSet = new HashSet<>();
+                updatedSet.addAll(xwikiRelativesList.getList());
+                updatedSet.addAll(relatives);
+                List<String> transferList = new LinkedList<>();
+                transferList.addAll(updatedSet);
 
-                familyObject.set("members", updatedList, provider.get());
+                familyObject.set("members", transferList, provider.get());
                 provider.get().getWiki().saveDocument(familyDoc, provider.get());
-//                family.put("list", updatedList);
-//                familyUtilsImpl.storeFamilyRepresentation(familyDoc, updatedList);
             }
         } catch (Exception ex) {
             ex.printStackTrace();

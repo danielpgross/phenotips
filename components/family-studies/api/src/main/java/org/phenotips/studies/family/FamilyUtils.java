@@ -50,6 +50,8 @@ public interface FamilyUtils
 
 //    void storeFamilyRepresentation(XWikiDocument family, JSON familyContents) throws XWikiException;
 
+    XWikiDocument createFamilyDoc(String patientId) throws NamingException, QueryException, XWikiException;
+
     XWikiDocument createFamilyDoc(XWikiDocument patient) throws NamingException, QueryException, XWikiException;
 
     public void processPatientPedigree(JSON json, String patientId) throws XWikiException;

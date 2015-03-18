@@ -25,10 +25,10 @@
   <name>FamilyClass</name>
   <language/>
   <defaultLanguage/>
-  <parent>PhenoTips.WebHome</parent>
   <translation>0</translation>
   <creator>xwiki:XWiki.Admin</creator>
   <creationDate>1426189200000</creationDate>
+  <parent>PhenoTips.WebHome</parent>
   <author>xwiki:XWiki.Admin</author>
   <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
   <date>1426193123000</date>
@@ -39,7 +39,7 @@
   <minorEdit>false</minorEdit>
   <syntaxId>xwiki/2.1</syntaxId>
   <hidden>false</hidden>
-  <content/>
+  <content>{{include document="XWiki.ClassSheet"/}}</content>
   <class>
     <name>PhenoTips.FamilyClass</name>
     <customClass/>
@@ -62,5 +62,91 @@
       <validationRegExp/>
       <classType>com.xpn.xwiki.objects.classes.NumberClass</classType>
     </identifier>
+    <members>
+      <cache>0</cache>
+      <classname/>
+      <customDisplay/>
+      <disabled>0</disabled>
+      <displayType>select</displayType>
+      <idField/>
+      <multiSelect>1</multiSelect>
+      <name>members</name>
+      <number>2</number>
+      <picker>0</picker>
+      <prettyName>members</prettyName>
+      <relationalStorage>1</relationalStorage>
+      <separator> </separator>
+      <separators/>
+      <size>1</size>
+      <sort>none</sort>
+      <sql/>
+      <unmodifiable>0</unmodifiable>
+      <validationMessage/>
+      <validationRegExp/>
+      <valueField/>
+      <classType>com.xpn.xwiki.objects.classes.DBListClass</classType>
+    </members>
+    <reports>
+      <cache>0</cache>
+      <classname/>
+      <customDisplay>{{velocity output="false"}}
+#if (!$value)
+  #set ($value = [])
+#end
+{{/velocity}}
+
+{{include document="PhenoTips.ImageDisplayer" /}}</customDisplay>
+      <disabled>0</disabled>
+      <displayType>checkbox</displayType>
+      <idField/>
+      <multiSelect>1</multiSelect>
+      <name>reports</name>
+      <number>3</number>
+      <picker>0</picker>
+      <prettyName>reports</prettyName>
+      <relationalStorage>1</relationalStorage>
+      <separator> </separator>
+      <separators/>
+      <size>1</size>
+      <sort>none</sort>
+      <sql/>
+      <unmodifiable>0</unmodifiable>
+      <validationMessage>pdf</validationMessage>
+      <validationRegExp>^application\/pdf$</validationRegExp>
+      <valueField/>
+      <classType>com.xpn.xwiki.objects.classes.DBListClass</classType>
+    </reports>
   </class>
+  <object>
+    <name>PhenoTips.FamilyClass</name>
+    <number>0</number>
+    <className>XWiki.ClassSheetBinding</className>
+    <guid>695c9f29-0188-4fdc-8412-0952a3dd779a</guid>
+    <class>
+      <name>XWiki.ClassSheetBinding</name>
+      <customClass/>
+      <customMapping/>
+      <defaultViewSheet/>
+      <defaultEditSheet/>
+      <defaultWeb/>
+      <nameField/>
+      <validationScript/>
+      <sheet>
+        <customDisplay/>
+        <disabled>0</disabled>
+        <name>sheet</name>
+        <number>1</number>
+        <picker>0</picker>
+        <prettyName>Sheet</prettyName>
+        <size>30</size>
+        <unmodifiable>0</unmodifiable>
+        <validationMessage/>
+        <validationRegExp/>
+        <classType>com.xpn.xwiki.objects.classes.StringClass</classType>
+      </sheet>
+    </class>
+    <property>
+      <sheet>FamilySheet</sheet>
+    </property>
+  </object>
 </xwikidoc>

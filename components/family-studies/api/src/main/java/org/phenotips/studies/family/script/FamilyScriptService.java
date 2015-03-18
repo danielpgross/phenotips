@@ -22,6 +22,7 @@ package org.phenotips.studies.family.script;
 import org.phenotips.studies.family.FamilyUtils;
 
 import org.xwiki.component.annotation.Component;
+import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.script.service.ScriptService;
 
 import javax.inject.Inject;
@@ -47,9 +48,6 @@ public class FamilyScriptService implements ScriptService
     Logger logger;
 
     /**
-     *
-     * @param thisPatient
-     * @param otherId
      * @return true if the patients can be linked without additional input, false otherwise
      */
     public Boolean linkPatients(XWikiDocument thisPatient, String otherId)
@@ -57,31 +55,35 @@ public class FamilyScriptService implements ScriptService
         return false;
     }
 
-    public String createFamily(XWikiDocument patient)
+    /** Can return null */
+    public DocumentReference createFamily(String patientId)
     {
         try {
-            return utils.createFamilyDoc(patient).getDocumentReference().getName();
+            XWikiDocument doc = utils.createFamilyDoc(patientId);
+            return doc != null ? doc.getDocumentReference() : null;
         } catch (Exception ex) {
             logger.error("Could not create a new family document {}", ex.getMessage());
         }
-        return "";
+        return null;
     }
 
-    public String getPatientsFamily(XWikiDocument patient)
+    /** Can return null. */
+    public DocumentReference getPatientsFamily(XWikiDocument patient)
     {
         try {
-            return utils.getFamilyDoc(patient).getDocumentReference().getName();
+            XWikiDocument doc = utils.getFamilyDoc(patient);
+            return doc != null ? doc.getDocumentReference() : null;
         } catch (XWikiException ex) {
             logger.error("Could not get patient's family {}", ex.getMessage());
         }
-        return "";
+        return null;
     }
 
-    public int processPedigree(String json, String probandId) {
+    public int processPedigree(String json, String probandId)
+    {
         try {
             this.utils.processPatientPedigree(JSONObject.fromObject(json), probandId);
             return 200;
-
         } catch (Exception ex) {
             return 500;
         }

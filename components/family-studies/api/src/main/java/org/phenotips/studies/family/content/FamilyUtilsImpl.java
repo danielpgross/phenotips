@@ -34,7 +34,9 @@ import org.xwiki.query.QueryManager;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -62,6 +64,9 @@ public class FamilyUtilsImpl implements org.phenotips.studies.family.FamilyUtils
     private final EntityReference FAMILY_REFERENCE =
         new EntityReference("FamilyReference", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
 
+    private final EntityReference FAMILY_TEMPLATE =
+        new EntityReference("FamilyTemplate", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
+
     private final EntityReference RELATIVEREFERENCE =
         new EntityReference("RelativeClass", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
 
@@ -76,6 +81,7 @@ public class FamilyUtilsImpl implements org.phenotips.studies.family.FamilyUtils
     @Named("current")
     private DocumentReferenceResolver<String> referenceResolver;
 
+    /** can return null */
     private XWikiDocument getDoc(EntityReference docRef) throws XWikiException
     {
         XWikiContext context = provider.get();
@@ -110,6 +116,7 @@ public class FamilyUtilsImpl implements org.phenotips.studies.family.FamilyUtils
         this.storeFamilyRepresentation(familyDoc, json);
     }
 
+    /** can return null. */
     public XWikiDocument getFamilyDoc(XWikiDocument patient) throws XWikiException
     {
         EntityReference reference = getFamilyReference(patient);
@@ -166,6 +173,12 @@ public class FamilyUtilsImpl implements org.phenotips.studies.family.FamilyUtils
         wiki.saveDocument(family, context);
     }
 
+    public XWikiDocument createFamilyDoc(String patientId) throws NamingException, QueryException, XWikiException {
+        DocumentReference docRef = referenceResolver.resolve(patientId, Patient.DEFAULT_DATA_SPACE);
+        XWikiDocument doc = getDoc(docRef);
+        return createFamilyDoc(doc);
+    }
+
     /** Creates a new family document and set that new document as the patients family, overwriting the existing
      * family. */
     public synchronized XWikiDocument createFamilyDoc(XWikiDocument patientDoc)
@@ -176,21 +189,30 @@ public class FamilyUtilsImpl implements org.phenotips.studies.family.FamilyUtils
         long nextId = getLastUsedId() + 1;
         String nextStringId = String.format("%s%07d", PREFIX, nextId);
         EntityReference nextRef = new EntityReference(nextStringId, EntityType.DOCUMENT, Patient.DEFAULT_DATA_SPACE);
-        XWikiDocument nextDoc = wiki.getDocument(nextRef, context);
-        if (!nextDoc.isNew()) {
+        XWikiDocument newFamilyDoc = wiki.getDocument(nextRef, context);
+        if (!newFamilyDoc.isNew()) {
             throw new NamingException("The new family id was already taken.");
         } else {
             BaseObject pointer = patientDoc.getXObject(FAMILY_REFERENCE);
-            BaseObject familyObject = nextDoc.newXObject(FAMILY_CLASS, context);
+            XWikiDocument template = getDoc(FAMILY_TEMPLATE);
+            // copying from template
+            for (Map.Entry<DocumentReference, List<BaseObject>> templateObject : template.getXObjects().entrySet()) {
+                newFamilyDoc.newXObject(templateObject.getKey(), context);
+            }
+            BaseObject familyObject = newFamilyDoc.getXObject(FAMILY_CLASS);
             familyObject.set("identifier", nextId, context);
             if (pointer == null) {
                 pointer = patientDoc.newXObject(FAMILY_REFERENCE, context);
             }
+            // adding the creating patient as a member
+            List<String> members = new LinkedList<>();
+            members.add(patientDoc.getDocumentReference().getName());
+            familyObject.set("members", members, context);
             pointer.set("reference", nextStringId, context);
-            wiki.saveDocument(nextDoc, context);
+            wiki.saveDocument(newFamilyDoc, context);
             wiki.saveDocument(patientDoc, context);
         }
-        return nextDoc;
+        return newFamilyDoc;
     }
 
     private JSONObject createBlankFamily()

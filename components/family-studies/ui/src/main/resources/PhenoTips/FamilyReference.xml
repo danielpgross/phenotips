@@ -25,10 +25,10 @@
   <name>FamilyReference</name>
   <language/>
   <defaultLanguage/>
-  <parent>PhenoTips.WebHome</parent>
   <translation>0</translation>
   <creator>xwiki:XWiki.Admin</creator>
   <creationDate>1426188993000</creationDate>
+  <parent>PhenoTips.WebHome</parent>
   <author>xwiki:XWiki.Admin</author>
   <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
   <date>1426189009000</date>
