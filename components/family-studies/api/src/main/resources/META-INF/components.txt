@@ -1,3 +1,4 @@
 org.phenotips.studies.family.script.FamilyScriptService
 org.phenotips.studies.family.content.FamilyUtilsImpl
 org.phenotips.studies.family.listener.PatientLinkListener
+org.phenotips.studies.family.content.ProcessingImpl

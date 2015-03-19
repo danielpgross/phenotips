@@ -7,9 +7,11 @@ import com.xpn.xwiki.doc.XWikiDocument;
  * Collection of checks for checking if certain actions are allowed.
  * Needs to be split up really, but later.
  */
-public class Access
+public class Validation
 {
     public boolean canAddToFamily(XWikiDocument patient, XWikiContext context) {
         return true;
     }
+
+    public boolean isInFamily(String id) { return true; }
 }

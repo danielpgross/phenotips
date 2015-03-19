@@ -20,6 +20,7 @@
 package org.phenotips.studies.family.script;
 
 import org.phenotips.studies.family.FamilyUtils;
+import org.phenotips.studies.family.Processing;
 
 import org.xwiki.component.annotation.Component;
 import org.xwiki.model.reference.DocumentReference;
@@ -45,15 +46,10 @@ public class FamilyScriptService implements ScriptService
     FamilyUtils utils;
 
     @Inject
-    Logger logger;
+    Processing processing;
 
-    /**
-     * @return true if the patients can be linked without additional input, false otherwise
-     */
-    public Boolean linkPatients(XWikiDocument thisPatient, String otherId)
-    {
-        return false;
-    }
+    @Inject
+    Logger logger;
 
     /** Can return null */
     public DocumentReference createFamily(String patientId)
@@ -79,10 +75,18 @@ public class FamilyScriptService implements ScriptService
         return null;
     }
 
-    public int processPedigree(String json, String probandId)
+    /**
+     * @return 200 if everything is ok, an error code if the patient is not linkable.
+     */
+    public int verifyLinkable(String thisId, String otherId)
+    {
+        return 200;
+    }
+
+    public int processPedigree(String familyMemberId, String json)
     {
         try {
-            this.utils.processPatientPedigree(JSONObject.fromObject(json), probandId);
+            this.processing.processPatientPedigree(JSONObject.fromObject(json), familyMemberId);
             return 200;
         } catch (Exception ex) {
             return 500;

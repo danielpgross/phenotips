@@ -21,6 +21,7 @@ package org.phenotips.studies.family.content;
 
 import org.phenotips.Constants;
 import org.phenotips.data.Patient;
+import org.phenotips.studies.family.FamilyUtils;
 
 import org.xwiki.component.annotation.Component;
 import org.xwiki.model.EntityType;
@@ -52,12 +53,11 @@ import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.BaseObject;
 
-import net.sf.json.JSON;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 @Component
-public class FamilyUtilsImpl implements org.phenotips.studies.family.FamilyUtils
+public class FamilyUtilsImpl implements FamilyUtils
 {
     private final String PREFIX = "FAM";
 
@@ -82,7 +82,7 @@ public class FamilyUtilsImpl implements org.phenotips.studies.family.FamilyUtils
     private DocumentReferenceResolver<String> referenceResolver;
 
     /** can return null */
-    private XWikiDocument getDoc(EntityReference docRef) throws XWikiException
+    public XWikiDocument getDoc(EntityReference docRef) throws XWikiException
     {
         XWikiContext context = provider.get();
         XWiki wiki = context.getWiki();
@@ -107,14 +107,6 @@ public class FamilyUtilsImpl implements org.phenotips.studies.family.FamilyUtils
         return null;
     }
 
-    // fixme make it throw exceptions
-    public void processPatientPedigree(JSON json, String patientId) throws XWikiException
-    {
-        DocumentReference patientRef = referenceResolver.resolve(patientId);
-        XWikiDocument patientDoc = getDoc(patientRef);
-        XWikiDocument familyDoc = this.getFamilyDoc(patientDoc);
-        this.storeFamilyRepresentation(familyDoc, json);
-    }
 
     /** can return null. */
     public XWikiDocument getFamilyDoc(XWikiDocument patient) throws XWikiException
@@ -160,17 +152,6 @@ public class FamilyUtilsImpl implements org.phenotips.studies.family.FamilyUtils
             return relativeIds;
         }
         return Collections.emptySet();
-    }
-
-    /**
-     * Will store the passed json in the document, or if the family document is null will create one
-     */
-    public void storeFamilyRepresentation(XWikiDocument family, JSON familyContents) throws XWikiException
-    {
-        XWikiContext context = provider.get();
-        XWiki wiki = context.getWiki();
-        family.setContent(familyContents.toString());
-        wiki.saveDocument(family, context);
     }
 
     public XWikiDocument createFamilyDoc(String patientId) throws NamingException, QueryException, XWikiException {

@@ -33,7 +33,6 @@ import javax.naming.NamingException;
 import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.doc.XWikiDocument;
 
-import net.sf.json.JSON;
 import net.sf.json.JSONObject;
 
 @Role
@@ -42,17 +41,15 @@ public interface FamilyUtils
     final EntityReference FAMILY_CLASS =
         new EntityReference("FamilyClass", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
 
+    XWikiDocument getDoc(EntityReference docRef) throws XWikiException;
+
     XWikiDocument getFamilyDoc(XWikiDocument patient) throws XWikiException;
 
     JSONObject getFamilyRepresentation(XWikiDocument doc);
 
     Collection<String> getRelatives(XWikiDocument patient) throws XWikiException;
 
-//    void storeFamilyRepresentation(XWikiDocument family, JSON familyContents) throws XWikiException;
-
     XWikiDocument createFamilyDoc(String patientId) throws NamingException, QueryException, XWikiException;
 
     XWikiDocument createFamilyDoc(XWikiDocument patient) throws NamingException, QueryException, XWikiException;
-
-    public void processPatientPedigree(JSON json, String patientId) throws XWikiException;
 }
