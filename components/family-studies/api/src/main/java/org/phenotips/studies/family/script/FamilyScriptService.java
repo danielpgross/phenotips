@@ -21,6 +21,7 @@ package org.phenotips.studies.family.script;
 
 import org.phenotips.studies.family.FamilyUtils;
 import org.phenotips.studies.family.Processing;
+import org.phenotips.studies.family.Validation;
 
 import org.xwiki.component.annotation.Component;
 import org.xwiki.model.reference.DocumentReference;
@@ -47,6 +48,9 @@ public class FamilyScriptService implements ScriptService
 
     @Inject
     Processing processing;
+
+    @Inject
+    Validation validation;
 
     @Inject
     Logger logger;
@@ -80,7 +84,16 @@ public class FamilyScriptService implements ScriptService
      */
     public int verifyLinkable(String thisId, String otherId)
     {
-        return 200;
+        try {
+            // todo check permissions
+            if (validation.isInFamily(thisId, otherId)) {
+                return 201;
+            } else {
+
+            }
+        } catch (XWikiException ex) {
+            return 500;
+        }
     }
 
     public int processPedigree(String familyMemberId, String json)

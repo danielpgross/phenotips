@@ -53,10 +53,12 @@ import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.BaseObject;
 
+import groovy.lang.Singleton;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 @Component
+@Singleton
 public class FamilyUtilsImpl implements FamilyUtils
 {
     private final String PREFIX = "FAM";
@@ -71,7 +73,7 @@ public class FamilyUtilsImpl implements FamilyUtils
         new EntityReference("RelativeClass", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
 
     @Inject
-    Provider<XWikiContext> provider;
+    private Provider<XWikiContext> provider;
 
     /** Runs queries for finding families. */
     @Inject
@@ -101,12 +103,11 @@ public class FamilyUtilsImpl implements FamilyUtils
         if (familyPointer != null) {
             String familyDocName = familyPointer.getStringValue("reference");
             if (StringUtils.isNotBlank(familyDocName)) {
-                return referenceResolver.resolve(familyDocName);
+                return referenceResolver.resolve(familyDocName, Patient.DEFAULT_DATA_SPACE);
             }
         }
         return null;
     }
-
 
     /** can return null. */
     public XWikiDocument getFamilyDoc(XWikiDocument patient) throws XWikiException
