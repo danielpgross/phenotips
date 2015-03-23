@@ -41,15 +41,20 @@ public interface FamilyUtils
     final EntityReference FAMILY_CLASS =
         new EntityReference("FamilyClass", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
 
+    final static EntityReference PEDIGREE_CLASS =
+        new EntityReference("PedigreeClass", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
+
     XWikiDocument getDoc(EntityReference docRef) throws XWikiException;
 
     XWikiDocument getFamilyDoc(XWikiDocument patient) throws XWikiException;
 
-    JSONObject getFamilyRepresentation(XWikiDocument doc);
+    JSONObject getPedigree(XWikiDocument doc);
 
     Collection<String> getRelatives(XWikiDocument patient) throws XWikiException;
 
     XWikiDocument createFamilyDoc(String patientId) throws NamingException, QueryException, XWikiException;
 
     XWikiDocument createFamilyDoc(XWikiDocument patient) throws NamingException, QueryException, XWikiException;
+
+    EntityReference getFamilyReference(XWikiDocument patientDoc) throws XWikiException;
 }

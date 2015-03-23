@@ -1,15 +1,12 @@
 package org.phenotips.studies.family.content;
 
-import org.phenotips.Constants;
 import org.phenotips.data.Patient;
 import org.phenotips.studies.family.FamilyUtils;
 import org.phenotips.studies.family.Processing;
 
 import org.xwiki.component.annotation.Component;
-import org.xwiki.model.EntityType;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.DocumentReferenceResolver;
-import org.xwiki.model.reference.EntityReference;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -29,9 +26,6 @@ import net.sf.json.JSON;
 @Component
 public class ProcessingImpl implements Processing
 {
-    private final static EntityReference PEDIGREE_CLASS =
-        new EntityReference("PedigreeClass", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
-
     @Inject
     FamilyUtils familyUtils;
 
@@ -58,7 +52,7 @@ public class ProcessingImpl implements Processing
     {
         XWikiContext context = provider.get();
         XWiki wiki = context.getWiki();
-        BaseObject pedigreeObject = family.getXObject(PEDIGREE_CLASS);
+        BaseObject pedigreeObject = family.getXObject(FamilyUtils.PEDIGREE_CLASS);
         pedigreeObject.set("image", "", context);
         pedigreeObject.set("data", familyContents.toString(), context);
         wiki.saveDocument(family, context);

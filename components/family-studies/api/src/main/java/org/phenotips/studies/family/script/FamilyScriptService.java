@@ -85,12 +85,18 @@ public class FamilyScriptService implements ScriptService
     public int verifyLinkable(String thisId, String otherId)
     {
         try {
-            // todo check permissions
             if (validation.isInFamily(thisId, otherId)) {
-                return 201;
+                return 208;
             } else {
-
+                int canAddCode = validation.canAddToFamily(thisId, otherId);
+                if (canAddCode == 1) {
+                    return 401;
+                } else if (canAddCode == 2) {
+                    // cannot add patients with existing pedigrees to a family
+                    return 501;
+                }
             }
+            return 200;
         } catch (XWikiException ex) {
             return 500;
         }

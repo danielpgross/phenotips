@@ -52,6 +52,7 @@ import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.BaseObject;
+import com.xpn.xwiki.objects.LargeStringProperty;
 
 import groovy.lang.Singleton;
 import net.sf.json.JSONArray;
@@ -94,12 +95,12 @@ public class FamilyUtilsImpl implements FamilyUtils
     /**
      * @return String could be null in case there is no pointer found
      */
-    private EntityReference getFamilyReference(XWikiDocument doc) throws XWikiException
+    public EntityReference getFamilyReference(XWikiDocument patientDoc) throws XWikiException
     {
-        if (doc == null) {
+        if (patientDoc == null) {
             throw new IllegalArgumentException("Document reference for the patient was null");
         }
-        BaseObject familyPointer = doc.getXObject(FAMILY_REFERENCE);
+        BaseObject familyPointer = patientDoc.getXObject(FAMILY_REFERENCE);
         if (familyPointer != null) {
             String familyDocName = familyPointer.getStringValue("reference");
             if (StringUtils.isNotBlank(familyDocName)) {
@@ -119,16 +120,21 @@ public class FamilyUtilsImpl implements FamilyUtils
         return null;
     }
 
-    /**
-     * @param doc which contains the JSON family object
-     * @return The content of the family document, or a new blank family if there is no family or it was not found.
-     */
-    public JSONObject getFamilyRepresentation(XWikiDocument doc)
+    /** @return null on error, an empty {@link net.sf.json.JSON} if there is no pedigree, or the existing pedigree. */
+    public JSONObject getPedigree(XWikiDocument doc)
     {
-        if (doc != null) {
-            return JSONObject.fromObject(doc.getContent());
+        try {
+            BaseObject pedigreeObj = doc.getXObject(PEDIGREE_CLASS);
+            if (pedigreeObj != null) {
+                LargeStringProperty data = (LargeStringProperty) pedigreeObj.get("data");
+                if (StringUtils.isNotBlank(data.toText())) {
+                    JSONObject.fromObject(data.toText());
+                }
+            }
+            return new JSONObject(true);
+        } catch (XWikiException ex) {
+            return null;
         }
-        return createBlankFamily();
     }
 
     /**

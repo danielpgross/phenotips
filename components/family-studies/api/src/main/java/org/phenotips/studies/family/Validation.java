@@ -8,4 +8,6 @@ import com.xpn.xwiki.XWikiException;
 public interface Validation
 {
     boolean isInFamily(String familyAnchor, String otherId) throws XWikiException;
+
+    int canAddToFamily(String familyAnchor, String patientId) throws XWikiException;
 }
