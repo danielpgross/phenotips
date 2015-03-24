@@ -8,7 +8,11 @@ VersionUpdater = Class.create( {
                                     "func":       "updateGroupNodeComments"},
                                   { "comment":    "adopted status",
                                     "introduced": "Nov2014",
-                                    "func":       "updateAdoptedStatus"}];
+                                    "func":       "updateAdoptedStatus"},
+                                  { "comment":    "proband link",
+                                    "introduced": "Mar 2015",
+                                    "func":       "updateNode0ProbandLink"}
+                                ];
     },
 
     updateToCurrentVersion: function(pedigreeJSON) {
@@ -66,6 +70,56 @@ VersionUpdater = Class.create( {
                     }
                     delete node.prop.isAdopted;
                     change = true;
+                }
+            }
+        }
+
+        if (!change)
+            return null;
+
+        return JSON.stringify(data);
+    },
+
+    /* - assumes input is in the pre-Mar-2015 format
+     * - returns null if there were no changes; returns new JSON if there was a change
+     */
+    updateNode0ProbandLink: function(pedigreeJSON) {
+        // check if at least one node is linked to the current patient. 
+        // Iff none are, assumenode 0 is the proband and link it to the patient
+
+        var currentPatient = XWiki.currentDocument.page;
+
+        var data = JSON.parse(pedigreeJSON);
+
+        //look through all person nodes for a node linked to the current patient
+        for (var i = 0; i < data.GG.length; i++) {
+            var node = data.GG[i];
+
+            if (node.hasOwnProperty("prop")) {
+                if (node.prop.hasOwnProperty("phenotipsId") ) {
+                    if (node.prop.phenotipsId == currentPatient) {
+                        return null;
+                    }
+                }
+            }
+        }
+
+        var change = false;
+
+        // assign node with id = 0 to be the proband
+        for (var i = 0; i < data.GG.length; i++) {
+            var node = data.GG[i];
+
+            if (node.id == 0) {
+                if (!node.hasOwnProperty("prop")) {
+                    node.prop = {};
+                }
+                if (node.prop.hasOwnProperty("phenotipsId")) {
+                    alert("Loaded pedigree is inconsistent - assumed proband node is linked to a different patient");
+                } else {
+                    node.prop.phenotipsId = currentPatient;
+                    change = true;
+                    break;
                 }
             }
         }
