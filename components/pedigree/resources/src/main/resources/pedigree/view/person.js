@@ -359,7 +359,7 @@ var Person = Class.create(AbstractPerson, {
                 this.setAdopted("");
                 this.setChildlessStatus(null);
             }
-a
+
             if (this.isProband()) {
                 this.getGraphics().setGenderGraphics();
             }
