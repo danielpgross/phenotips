@@ -96,6 +96,7 @@ public class FamilyScriptService implements ScriptService
                     return 501;
                 }
             }
+            // if thisId does not belong to a family still returns 200.
             return 200;
         } catch (XWikiException ex) {
             return 500;

@@ -8,9 +8,14 @@ import org.xwiki.component.annotation.Component;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.DocumentReferenceResolver;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Provider;
+
+import org.apache.commons.lang3.StringUtils;
 
 import com.xpn.xwiki.XWiki;
 import com.xpn.xwiki.XWikiContext;
@@ -19,6 +24,8 @@ import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.BaseObject;
 
 import net.sf.json.JSON;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 
 /**
  * Storage and retrieval.
@@ -56,5 +63,24 @@ public class ProcessingImpl implements Processing
         pedigreeObject.set("image", "", context);
         pedigreeObject.set("data", familyContents.toString(), context);
         wiki.saveDocument(family, context);
+    }
+
+    /**
+     * @param pedigree
+     * @return all PhenoTips ids from pedigree nodes that have internal ids
+     */
+    private List<String> extractIdsFromPedigree(JSONObject pedigree) {
+        List<String> extractedIds = new LinkedList<>();
+        JSONArray gg = (JSONArray) pedigree.get("GG");
+        // letting it throw a null exception on purpose
+        for (Object nodeObj : gg) {
+            JSONObject node = (JSONObject) nodeObj;
+            JSONObject properties = (JSONObject) node.get("prop");
+            String id = properties.getString("phenotipsId");
+            if (StringUtils.isNotBlank(id)) {
+                extractedIds.add(id);
+            }
+        }
+        return extractedIds;
     }
 }

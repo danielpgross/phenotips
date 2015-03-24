@@ -128,7 +128,7 @@ public class FamilyUtilsImpl implements FamilyUtils
             if (pedigreeObj != null) {
                 LargeStringProperty data = (LargeStringProperty) pedigreeObj.get("data");
                 if (StringUtils.isNotBlank(data.toText())) {
-                    JSONObject.fromObject(data.toText());
+                    return JSONObject.fromObject(data.toText());
                 }
             }
             return new JSONObject(true);
