@@ -187,7 +187,7 @@ var SaveLoadEngine = Class.create( {
             onSuccess: function() { editor.getActionStack().addSaveEvent();
                                     savingNotification.replace(new XWiki.widgets.Notification("Successfuly saved"));
                                   },
-            parameters: {"json": jsonData, "image": image.innerHTML.replace(/xmlns:xlink=".*?"/, '').replace(/width=".*?"/, '').replace(/height=".*?"/, '').replace(/viewBox=".*?"/, "viewBox=\"" + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height + "\" width=\"" + bbox.width + "\" height=\"" + bbox.height + "\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"")}
+            parameters: {"proband": editor.getGraph().getCurrentPatientId(), "json": jsonData, "image": image.innerHTML.replace(/xmlns:xlink=".*?"/, '').replace(/width=".*?"/, '').replace(/height=".*?"/, '').replace(/viewBox=".*?"/, "viewBox=\"" + bbox.x + " " + bbox.y + " " + bbox.width + " " + bbox.height + "\" width=\"" + bbox.width + "\" height=\"" + bbox.height + "\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"")}
         });
         backgroundParent.insertBefore(background, backgroundPosition);
     },
