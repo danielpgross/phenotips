@@ -214,21 +214,22 @@ if (newFamilyTrigger) {
       <content>{{velocity}}
 #set ($family = $services.family.getPatientsFamily($doc.getDocument()))
 #if ($xcontext.action != 'view' || $family)
-#if ($xcontext.action == 'edit')
-  $xwiki.jsx.use('PhenoTips.UIX_Field__family_membership')
-#end
+  #if ($xcontext.action == 'edit')
+    $xwiki.jsx.use('PhenoTips.UIX_Field__family_membership')
+  #end
 (% class="clear relatives-info" %)(((
 ##    === $services.localization.render('phenotips.UIXField.family.heading') ===
     === Family ===
-    ##$services.family.processPedigree('{"GG":[{"id":0,"prop":{}},{"id":1,"chhub":true,"prop":{},"outedges":[{"to":0}]},{"id":2,"rel":true,"hub":true,"prop":{},"outedges":[{"to":1}]},{"id":3,"prop":{"gender":"F"},"outedges":[{"to":2}]},{"id":4,"prop":{"gender":"M"},"outedges":[{"to":2}]}],"ranks":[3,2,1,1,1],"order":[[],[4,2,3],[1],[0]],"positions":[5,5,5,17,-7],"settings":{"colors":{"disorders":{},"genes":{},"cancers":{}},"names":{"disorders":{}}}}', "P0000001")
-  )))
     {{html wiki='true'}}
+    &lt;span class="buttonwrapper"&gt;
     #if ($!family)
-      &lt;a id="new-family-trigger" href="$xwiki.getURL($family, 'edit')"&gt;Open family page&lt;/a&gt;
+      &lt;a id="new-family-trigger" class="button" href="$xwiki.getURL($family, 'edit')"&gt;Open family page&lt;/a&gt;
     #else
-	  &lt;a id="new-family-trigger" href="$xwiki.getURL("PhenoTips.CreateFamily")?patient_id=$doc.getName()"&gt;Create a family&lt;/a&gt;
+      &lt;a id="new-family-trigger" class="button" href="$xwiki.getURL("PhenoTips.CreateFamily")?patient_id=$doc.getName()"&gt;Create a family&lt;/a&gt;
     #end
+    &lt;/span&gt;
     {{/html}}
+)))
 #end
 {{/velocity}}</content>
     </property>

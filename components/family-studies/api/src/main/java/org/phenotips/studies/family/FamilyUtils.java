@@ -27,11 +27,14 @@ import org.xwiki.model.reference.EntityReference;
 import org.xwiki.query.QueryException;
 
 import java.util.Collection;
+import java.util.List;
 
 import javax.naming.NamingException;
 
+import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.doc.XWikiDocument;
+import com.xpn.xwiki.objects.BaseObject;
 
 import net.sf.json.JSONObject;
 
@@ -40,9 +43,11 @@ public interface FamilyUtils
 {
     final EntityReference FAMILY_CLASS =
         new EntityReference("FamilyClass", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
-
     final static EntityReference PEDIGREE_CLASS =
         new EntityReference("PedigreeClass", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
+
+    final EntityReference FAMILY_REFERENCE =
+        new EntityReference("FamilyReference", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
 
     XWikiDocument getDoc(EntityReference docRef) throws XWikiException;
 
@@ -57,4 +62,11 @@ public interface FamilyUtils
     XWikiDocument createFamilyDoc(XWikiDocument patient) throws NamingException, QueryException, XWikiException;
 
     EntityReference getFamilyReference(XWikiDocument patientDoc) throws XWikiException;
+
+    public List<String> getFamilyMembers(XWikiDocument familyDoc) throws XWikiException;
+
+    public List<String> getFamilyMembers(BaseObject familyObject) throws XWikiException;
+
+    public void setFamilyReference(XWikiDocument patientDoc, XWikiDocument familyDoc, XWikiContext context)
+        throws XWikiException;
 }

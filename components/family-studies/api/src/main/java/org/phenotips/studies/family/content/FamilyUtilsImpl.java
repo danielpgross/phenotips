@@ -52,6 +52,7 @@ import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.BaseObject;
+import com.xpn.xwiki.objects.DBStringListProperty;
 import com.xpn.xwiki.objects.LargeStringProperty;
 
 import groovy.lang.Singleton;
@@ -63,9 +64,6 @@ import net.sf.json.JSONObject;
 public class FamilyUtilsImpl implements FamilyUtils
 {
     private final String PREFIX = "FAM";
-
-    private final EntityReference FAMILY_REFERENCE =
-        new EntityReference("FamilyReference", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
 
     private final EntityReference FAMILY_TEMPLATE =
         new EntityReference("FamilyTemplate", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
@@ -161,14 +159,16 @@ public class FamilyUtilsImpl implements FamilyUtils
         return Collections.emptySet();
     }
 
-    public XWikiDocument createFamilyDoc(String patientId) throws NamingException, QueryException, XWikiException {
+    public XWikiDocument createFamilyDoc(String patientId) throws NamingException, QueryException, XWikiException
+    {
         DocumentReference docRef = referenceResolver.resolve(patientId, Patient.DEFAULT_DATA_SPACE);
         XWikiDocument doc = getDoc(docRef);
         return createFamilyDoc(doc);
     }
 
-    /** Creates a new family document and set that new document as the patients family, overwriting the existing
-     * family. */
+    /**
+     * Creates a new family document and set that new document as the patients family, overwriting the existing family.
+     */
     public synchronized XWikiDocument createFamilyDoc(XWikiDocument patientDoc)
         throws NamingException, QueryException, XWikiException
     {
@@ -181,7 +181,6 @@ public class FamilyUtilsImpl implements FamilyUtils
         if (!newFamilyDoc.isNew()) {
             throw new NamingException("The new family id was already taken.");
         } else {
-            BaseObject pointer = patientDoc.getXObject(FAMILY_REFERENCE);
             XWikiDocument template = getDoc(FAMILY_TEMPLATE);
             // copying from template
             for (Map.Entry<DocumentReference, List<BaseObject>> templateObject : template.getXObjects().entrySet()) {
@@ -189,18 +188,27 @@ public class FamilyUtilsImpl implements FamilyUtils
             }
             BaseObject familyObject = newFamilyDoc.getXObject(FAMILY_CLASS);
             familyObject.set("identifier", nextId, context);
-            if (pointer == null) {
-                pointer = patientDoc.newXObject(FAMILY_REFERENCE, context);
-            }
+
             // adding the creating patient as a member
             List<String> members = new LinkedList<>();
             members.add(patientDoc.getDocumentReference().getName());
             familyObject.set("members", members, context);
-            pointer.set("reference", nextStringId, context);
+            this.setFamilyReference(patientDoc, newFamilyDoc, context);
+
             wiki.saveDocument(newFamilyDoc, context);
             wiki.saveDocument(patientDoc, context);
         }
         return newFamilyDoc;
+    }
+
+    public void setFamilyReference(XWikiDocument patientDoc, XWikiDocument familyDoc, XWikiContext context)
+        throws XWikiException
+    {
+        BaseObject pointer = patientDoc.getXObject(FAMILY_REFERENCE);
+        if (pointer == null) {
+            pointer = patientDoc.newXObject(FAMILY_REFERENCE, context);
+        }
+        pointer.set("reference", familyDoc.getDocumentReference().getName(), context);
     }
 
     private JSONObject createBlankFamily()
@@ -225,5 +233,16 @@ public class FamilyUtilsImpl implements FamilyUtils
         }
         crtMaxID = Math.max(crtMaxID, 0);
         return crtMaxID;
+    }
+
+    public List<String> getFamilyMembers(XWikiDocument familyDoc) throws XWikiException
+    {
+        return this.getFamilyMembers(familyDoc.getXObject(FAMILY_CLASS));
+    }
+
+    public List<String> getFamilyMembers(BaseObject familyObject) throws XWikiException
+    {
+        DBStringListProperty xwikiRelativesList = (DBStringListProperty) familyObject.get("members");
+        return xwikiRelativesList.getList();
     }
 }

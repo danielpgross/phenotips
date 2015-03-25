@@ -43,7 +43,6 @@ import org.slf4j.Logger;
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.BaseObject;
-import com.xpn.xwiki.objects.DBStringListProperty;
 
 /**
  * Listens for changes in patient documents to check for new or changed links between patients. Creates family pages and
@@ -96,9 +95,8 @@ public class PatientLinkListener implements EventListener
                 }
 
                 // replacing whatever relatives were in the list part of the family. Has no effect on the tree/pedigree
-                DBStringListProperty xwikiRelativesList = (DBStringListProperty) familyObject.get("members");
                 Set<String> updatedSet = new HashSet<>();
-                updatedSet.addAll(xwikiRelativesList.getList());
+                updatedSet.addAll(familyUtilsImpl.getFamilyMembers(familyObject));
                 updatedSet.addAll(relatives);
                 List<String> transferList = new LinkedList<>();
                 transferList.addAll(updatedSet);
