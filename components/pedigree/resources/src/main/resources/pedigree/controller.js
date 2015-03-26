@@ -489,6 +489,25 @@ var Controller = Class.create({
                     node.assignProperties(editor.getGraph().getProperties(nodeID));
                 }
 
+                if (modificationType == "trySetPhenotipsPatientId") {
+
+                    // undo should be handled by setProperty(),
+                    // here we just check if setProperty should be called
+                    event.memo.noUndoRedo = true;
+
+                    var setLink = function() {
+                        var properties = {"setPhenotipsPatientId": modValue };
+                        var event = { "nodeID": nodeID, "properties": properties };
+                        document.fire("pedigree:node:setproperty", event);
+                    }
+
+                    if (modValue != "") {
+                        Controller._checkPatientLinkValidity(setLink, modValue);
+                    } else {
+                        setLink();
+                    }
+                }
+
                 if (modificationType == "makePlaceholder") {
                     // TODO
                 }
@@ -799,3 +818,36 @@ Controller._propagateLastNameAtBirth = function( parentID, parentLastName, chang
     }
 }
 
+Controller._checkPatientLinkValidity = function(callbackOnValid, linkID)
+{
+    var familyServiceURL = new XWiki.Document('FamilyPedigreeInterface', 'PhenoTips').getURL('get', 'outputSyntax=plain');
+    new Ajax.Request(familyServiceURL, {
+        method: 'POST',
+        onSuccess: function(response) {
+            if (response.responseJSON) {
+                if (!response.responseJSON.validLink) {
+                    var errorMessage = response.responseJSON.errorMessage ? response.responseJSON.errorMessage : "Unknown problem";
+                    errorMessage = "<font color='#660000'>" + errorMessage + "</font><br><br><br>";
+                    if (response.responseJSON.errorType == "pedigreeConflict") {
+                        errorMessage += "(for now it is only possible to add persons without an already existing pedigree to a family)";
+                    }
+                    if (response.responseJSON.errorType == "permissions") {
+                        errorMessage += "(you need to have edit permissions for the patient to be able to add it to a family)";
+                    }
+                    editor.getOkCancelDialogue().showError('<br>Patient ' + linkID + ' can not be linked to from this pedigree: ' + errorMessage,
+                            "Can't link to this patient", "OK", undefined );
+                } else {
+                    var onCancelAssignPatient = function() {
+                        editor.getNodeMenu().update();
+                    }
+                    editor.getOkCancelDialogue().show("Do you want to add patient " + linkID + " to this family?",
+                            "Add patient to the family", callbackOnValid, onCancelAssignPatient);
+                }
+            } else  {
+                editor.getOkCancelDialogue().showError('Server error - unable to verify validity of patient link',
+                        'Error saving pedigree', "OK", undefined );
+            }
+        },
+        parameters: {"proband": editor.getGraph().getCurrentPatientId(), "link_to_id": linkID }
+    });
+}

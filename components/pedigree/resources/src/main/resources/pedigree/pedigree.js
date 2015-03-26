@@ -404,7 +404,7 @@ var PedigreeEditor = Class.create({
                 'label' : 'Local Patient Profile',
                 'type' : 'phenotipsid-picker',
                 'tab' : 'Personal',
-                'function' : 'setPhenotipsPatientId'
+                'function' : 'trySetPhenotipsPatientId'
             },
             {
                 'name' : 'gender',
