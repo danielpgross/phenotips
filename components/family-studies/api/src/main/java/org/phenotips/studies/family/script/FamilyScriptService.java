@@ -22,6 +22,7 @@ package org.phenotips.studies.family.script;
 import org.phenotips.studies.family.FamilyUtils;
 import org.phenotips.studies.family.Processing;
 import org.phenotips.studies.family.Validation;
+import org.phenotips.studies.family.content.StatusResponse;
 
 import org.xwiki.component.annotation.Component;
 import org.xwiki.model.reference.DocumentReference;
@@ -68,51 +69,64 @@ public class FamilyScriptService implements ScriptService
     }
 
     /** Can return null. */
-    public DocumentReference getPatientsFamily(XWikiDocument patient)
+    public String getFamilyStatus(String id)
     {
+        StatusResponse response = new StatusResponse();
+        boolean isFamily = false;
+        boolean hasFamily = false;
         try {
-            XWikiDocument doc = utils.getFamilyDoc(patient);
-            return doc != null ? doc.getDocumentReference() : null;
+            XWikiDocument doc = utils.getFromDataSpace(id);
+            XWikiDocument familyDoc = utils.getFamilyDoc(doc);
+            hasFamily = familyDoc != null;
+            if (hasFamily) {
+                isFamily = familyDoc.getDocumentReference() == doc.getDocumentReference();
+            }
+            response.statusCode = 200;
         } catch (XWikiException ex) {
             logger.error("Could not get patient's family {}", ex.getMessage());
+            response.statusCode = 500;
         }
-        return null;
+        return response.asFamilyStatus(isFamily, hasFamily);
     }
 
     /**
      * @return 200 if everything is ok, an error code if the patient is not linkable.
      */
-    public int verifyLinkable(String thisId, String otherId)
+    public String verifyLinkable(String thisId, String otherId)
     {
+        int status = 200;
         try {
             if (validation.isInFamily(thisId, otherId)) {
-                return 208;
+                status = 208;
             } else {
                 int canAddCode = validation.canAddToFamily(thisId, otherId);
                 if (canAddCode == 1) {
-                    return 401;
+                    status = 401;
                 } else if (canAddCode == 2) {
                     // cannot add patients with existing pedigrees to a family
-                    return 501;
+                    status = 501;
                 }
             }
             // if thisId does not belong to a family still returns 200.
-            return 200;
+            status = 200;
         } catch (XWikiException ex) {
-            return 500;
+            status = 500;
         }
+        StatusResponse response = new StatusResponse();
+        response.statusCode = status;
+        return response.asVerification();
     }
 
-    public int processPedigree(String anchorId, String json, String image)
+    public String processPedigree(String anchorId, String json, String image)
     {
+        int status;
         try {
-            return this.processing.processPatientPedigree(anchorId, JSONObject.fromObject(json), image);
+            status = this.processing.processPatientPedigree(anchorId, JSONObject.fromObject(json), image);
         } catch (Exception ex) {
-            return 500;
+            status = 500;
         }
-    }
-
-    public JSONObject generateResponse(int statusCode, String message) {
-        return new JSONObject();
+        StatusResponse response = new StatusResponse();
+        response.statusCode = status;
+        return response.asProcessing();
     }
 }

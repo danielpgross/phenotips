@@ -40,12 +40,16 @@
   <syntaxId>xwiki/2.1</syntaxId>
   <hidden>false</hidden>
   <content>{{velocity}}
-## family member or proband
-#set ($probandId = $request.proband)
+## family member, proband or family
+#set ($anchorId = $request.proband)
+$response.setContentType('application/json')
+##
 #if ("$!request.json" != '')
-  $services.family.processPedigree($probandId, $request.json, $request.image)
+  $services.family.processPedigree($anchorId, $request.json, $request.image)
+#elseif ("$!resuest.link_to_id" != '')
+  $services.family.verifyLinkable($anchorId, $request.link_to_id)
 #else
-  $services.family.verifyLinkable($probandId, $request.link_to_id)
+  $services.family.getFamilyStatus($anchorId)
 #end
 {{/velocity}}</content>
 </xwikidoc>

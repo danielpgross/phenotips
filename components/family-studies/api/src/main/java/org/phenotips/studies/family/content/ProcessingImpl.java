@@ -52,13 +52,7 @@ public class ProcessingImpl implements Processing
     {
         DocumentReference anchorRef = referenceResolver.resolve(anchorId, Patient.DEFAULT_DATA_SPACE);
         XWikiDocument anchorDoc = familyUtils.getDoc(anchorRef);
-        BaseObject familyObject = anchorDoc.getXObject(FamilyUtils.FAMILY_CLASS);
-        XWikiDocument familyDoc;
-        if (familyObject != null) {
-            familyDoc = anchorDoc;
-        } else {
-            familyDoc = familyUtils.getFamilyDoc(anchorDoc);
-        }
+        XWikiDocument familyDoc = familyUtils.getFamilyDoc(anchorDoc);
 
         if (familyDoc != null) {
             List<String> members = familyUtils.getFamilyMembers(familyDoc);

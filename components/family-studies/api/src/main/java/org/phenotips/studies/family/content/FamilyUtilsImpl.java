@@ -89,6 +89,11 @@ public class FamilyUtilsImpl implements FamilyUtils
         return wiki.getDocument(docRef, context);
     }
 
+    public XWikiDocument getFromDataSpace(String id) throws XWikiException
+    {
+        return getDoc(referenceResolver.resolve(id, Patient.DEFAULT_DATA_SPACE));
+    }
+
     /**
      * @return String could be null in case there is no pointer found
      */
@@ -107,12 +112,20 @@ public class FamilyUtilsImpl implements FamilyUtils
         return null;
     }
 
-    /** can return null. */
-    public XWikiDocument getFamilyDoc(XWikiDocument patient) throws XWikiException
+    /**
+     * can return null. Checks if the document is a family document, and returns it. If not tries to find the family
+     * document attached to the passed in document.
+     */
+    public XWikiDocument getFamilyDoc(XWikiDocument anchorDoc) throws XWikiException
     {
-        EntityReference reference = getFamilyReference(patient);
-        if (reference != null) {
-            return getDoc(reference);
+        BaseObject familyObject = anchorDoc.getXObject(FamilyUtils.FAMILY_CLASS);
+        if (familyObject != null) {
+            return anchorDoc;
+        } else {
+            EntityReference reference = getFamilyReference(anchorDoc);
+            if (reference != null) {
+                return getDoc(reference);
+            }
         }
         return null;
     }
