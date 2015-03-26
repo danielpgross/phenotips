@@ -48,11 +48,17 @@ public class ProcessingImpl implements Processing
     private DocumentReferenceResolver<String> referenceResolver;
 
     // fixme make it throw exceptions
-    public int processPatientPedigree(String patientId, JSONObject json, String image) throws XWikiException
+    public int processPatientPedigree(String anchorId, JSONObject json, String image) throws XWikiException
     {
-        DocumentReference patientRef = referenceResolver.resolve(patientId, Patient.DEFAULT_DATA_SPACE);
-        XWikiDocument patientDoc = familyUtils.getDoc(patientRef);
-        XWikiDocument familyDoc = familyUtils.getFamilyDoc(patientDoc);
+        DocumentReference anchorRef = referenceResolver.resolve(anchorId, Patient.DEFAULT_DATA_SPACE);
+        XWikiDocument anchorDoc = familyUtils.getDoc(anchorRef);
+        BaseObject familyObject = anchorDoc.getXObject(FamilyUtils.FAMILY_CLASS);
+        XWikiDocument familyDoc;
+        if (familyObject != null) {
+            familyDoc = anchorDoc;
+        } else {
+            familyDoc = familyUtils.getFamilyDoc(anchorDoc);
+        }
 
         if (familyDoc != null) {
             List<String> members = familyUtils.getFamilyMembers(familyDoc);
@@ -64,10 +70,15 @@ public class ProcessingImpl implements Processing
                 // the list of members should not be empty.
                 return 412;
             }
+
+            // remove and add do not take care of modifying the 'members' property
+            familyUtils.setFamilyMembers(familyDoc, updatedMembers);
             this.removeMembersNotPresent(members, updatedMembers);
             this.addNewMembers(members, updatedMembers, familyDoc);
         } else {
             // when saving just a patient's pedigree that does not belong to a family
+            XWikiContext context = provider.get();
+            this.storePedigree(anchorDoc, json, image, context, context.getWiki());
         }
 
         return 200;
@@ -109,9 +120,12 @@ public class ProcessingImpl implements Processing
         for (Object nodeObj : gg) {
             JSONObject node = (JSONObject) nodeObj;
             JSONObject properties = (JSONObject) node.get("prop");
-            String id = properties.getString("phenotipsId");
-            if (StringUtils.isNotBlank(id)) {
-                extractedIds.add(id);
+            if (properties == null) {
+                continue;
+            }
+            Object id = properties.get("phenotipsId");
+            if (id != null && StringUtils.isNotBlank(id.toString())) {
+                extractedIds.add(id.toString());
             }
         }
         return extractedIds;
@@ -124,7 +138,7 @@ public class ProcessingImpl implements Processing
     {
         List<String> toRemove = new LinkedList<>();
         toRemove.addAll(currentMembers);
-        if (toRemove.removeAll(updatedMembers)) {
+        if (toRemove.removeAll(updatedMembers) && !toRemove.isEmpty()) {
             XWikiContext context = provider.get();
             XWiki wiki = context.getWiki();
             for (String oldMember : toRemove) {
@@ -143,7 +157,7 @@ public class ProcessingImpl implements Processing
     {
         List<String> newMembers = new LinkedList<>();
         newMembers.addAll(updatedMembers);
-        if (newMembers.removeAll(currentMembers)) {
+        if (newMembers.removeAll(currentMembers) && !newMembers.isEmpty()) {
             XWikiContext context = provider.get();
             XWiki wiki = context.getWiki();
             for (String newMember: newMembers) {

@@ -56,7 +56,6 @@ import com.xpn.xwiki.objects.DBStringListProperty;
 import com.xpn.xwiki.objects.LargeStringProperty;
 
 import groovy.lang.Singleton;
-import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 @Component
@@ -211,14 +210,6 @@ public class FamilyUtilsImpl implements FamilyUtils
         pointer.set("reference", familyDoc.getDocumentReference().getName(), context);
     }
 
-    private JSONObject createBlankFamily()
-    {
-        JSONObject family = new JSONObject();
-        family.put("list", new JSONArray());
-        family.put("pedigree", new JSONArray());
-        return family;
-    }
-
     private long getLastUsedId() throws QueryException
     {
         long crtMaxID = 0;
@@ -244,5 +235,14 @@ public class FamilyUtilsImpl implements FamilyUtils
     {
         DBStringListProperty xwikiRelativesList = (DBStringListProperty) familyObject.get("members");
         return xwikiRelativesList.getList();
+    }
+
+    public void setFamilyMembers(XWikiDocument familyDoc, List<String> members) throws XWikiException
+    {
+        BaseObject familyObject = familyDoc.getXObject(FAMILY_CLASS);
+        DBStringListProperty xwikiRelativesList = (DBStringListProperty) familyObject.get("members");
+        xwikiRelativesList.setList(members);
+        XWikiContext context = provider.get();
+        context.getWiki().saveDocument(familyDoc, context);
     }
 }

@@ -63,10 +63,12 @@ public interface FamilyUtils
 
     EntityReference getFamilyReference(XWikiDocument patientDoc) throws XWikiException;
 
-    public List<String> getFamilyMembers(XWikiDocument familyDoc) throws XWikiException;
+    List<String> getFamilyMembers(XWikiDocument familyDoc) throws XWikiException;
 
-    public List<String> getFamilyMembers(BaseObject familyObject) throws XWikiException;
+    List<String> getFamilyMembers(BaseObject familyObject) throws XWikiException;
 
-    public void setFamilyReference(XWikiDocument patientDoc, XWikiDocument familyDoc, XWikiContext context)
+    void setFamilyReference(XWikiDocument patientDoc, XWikiDocument familyDoc, XWikiContext context)
         throws XWikiException;
+
+    void setFamilyMembers(XWikiDocument familyDoc, List<String> members) throws XWikiException;
 }

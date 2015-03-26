@@ -103,12 +103,10 @@ public class FamilyScriptService implements ScriptService
         }
     }
 
-    public int processPedigree(String familyMemberId, String json, String image)
+    public int processPedigree(String anchorId, String json, String image)
     {
         try {
-            // fixme remove
-            familyMemberId = "P0000001";
-            return this.processing.processPatientPedigree(familyMemberId, JSONObject.fromObject(json), image);
+            return this.processing.processPatientPedigree(anchorId, JSONObject.fromObject(json), image);
         } catch (Exception ex) {
             return 500;
         }

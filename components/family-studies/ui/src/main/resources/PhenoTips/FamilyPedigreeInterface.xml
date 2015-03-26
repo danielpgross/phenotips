@@ -41,11 +41,11 @@
   <hidden>false</hidden>
   <content>{{velocity}}
 ## family member or proband
-#set ($anchorId = $request.anchor_id)
+#set ($probandId = $request.proband)
 #if ("$!request.json" != '')
-  $services.family.processPedigree($anchorId, $request.json, $request.image)
+  $services.family.processPedigree($probandId, $request.json, $request.image)
 #else
-  $services.family.verifyLinkable($anchorId, $request.link_to_id)
+  $services.family.verifyLinkable($probandId, $request.link_to_id)
 #end
 {{/velocity}}</content>
 </xwikidoc>
