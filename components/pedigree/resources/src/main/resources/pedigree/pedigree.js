@@ -11,6 +11,8 @@ var PedigreeEditor = Class.create({
         this.DEBUG_MODE = true;
         window.editor = this;
 
+        this._externalEndpointManager = new ExternalEndpointsManager();
+
         // Available options:
         //
         //  nonStandardAdoptedOutGraphic: {true|false}   - use out-brackets for adopted out persons; default "false"
@@ -151,6 +153,16 @@ var PedigreeEditor = Class.create({
         });
 
         //this.startAutoSave(30);
+    },
+
+    /**
+     * Returns a class managing external connections for pedigree editor, e.g. load/save URLs etc.
+     *
+     * @method getPreferencesManager
+     * @return {ExternalAPIs}
+     */
+    getExternalEndpoint: function() {
+        return this._externalEndpointManager;
     },
 
     /**
@@ -344,6 +356,17 @@ var PedigreeEditor = Class.create({
      */
     getProbandDataFromPhenotips: function() {
         return this._probandData.probandData;
+    },
+
+    /**
+     * True iff current pedigree belongs toa family page, not a patient
+     * @method isFamilyPage
+     * @return {boolean}
+     */
+    isFamilyPage: function() {
+        if (!this._probandData) return false;
+
+        return this._probandData.isFamily;
     },
 
     /**
