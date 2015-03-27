@@ -37,6 +37,7 @@ import org.slf4j.Logger;
 import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.doc.XWikiDocument;
 
+import net.sf.json.JSON;
 import net.sf.json.JSONObject;
 
 @Component
@@ -81,7 +82,7 @@ public class FamilyScriptService implements ScriptService
     }
 
     /** Can return null. */
-    public String getFamilyStatus(String id)
+    public JSON getFamilyStatus(String id)
     {
         StatusResponse response = new StatusResponse();
         boolean isFamily = false;
@@ -96,21 +97,21 @@ public class FamilyScriptService implements ScriptService
             return familyStatusResponse(isFamily, hasFamily);
         } catch (XWikiException ex) {
             logger.error("Could not get patient's family {}", ex.getMessage());
-            return "";
+            return new JSONObject(true);
         }
     }
 
     /**
      * @return 200 if everything is ok, an error code if the patient is not linkable.
      */
-    public String verifyLinkable(String thisId, String otherId)
+    public JSON verifyLinkable(String thisId, String otherId)
     {
         StatusResponse response = new StatusResponse();
         try {
             if (validation.hasFamily(otherId)) {
                 response.statusCode = 501;
                 response.errorType = "familyConflict";
-                response.message = "This patient already exists in this family.";
+                response.message = "This patient belongs to a different family.";
                 return response.asVerification();
             } else if (validation.isInFamily(thisId, otherId)) {
                 response.statusCode = 208;
@@ -121,23 +122,23 @@ public class FamilyScriptService implements ScriptService
                 return validation.canAddToFamily(thisId, otherId).asVerification();
             }
         } catch (XWikiException ex) {
-            return "";
+            return new JSONObject(true);
         }
     }
 
-    public String processPedigree(String anchorId, String json, String image)
+    public JSON processPedigree(String anchorId, String json, String image)
     {
         try {
             return this.processing.processPatientPedigree(anchorId, JSONObject.fromObject(json), image).asProcessing();
         } catch (Exception ex) {
-            return "";
+            return new JSONObject(true);
         }
     }
 
-    private static String familyStatusResponse(boolean isFamily, boolean hasFamily) {
+    private static JSON familyStatusResponse(boolean isFamily, boolean hasFamily) {
         JSONObject json = new JSONObject();
         json.put("isFamilyPage", isFamily);
         json.put("hasFamily", hasFamily);
-        return json.toString();
+        return json;
     }
 }

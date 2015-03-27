@@ -65,6 +65,8 @@ public class ProcessingImpl implements Processing
         if (familyDoc != null) {
             List<String> members = familyUtils.getFamilyMembers(familyDoc);
             List<String> updatedMembers = this.extractIdsFromPedigree(json);
+            // sometimes pedigree passes in family document name as a member
+            updatedMembers.remove(familyDoc.getDocumentReference().getName());
             // storing first, because pedigree depends on this.
             this.storeFamilyRepresentation(familyDoc, updatedMembers, json, image);
 

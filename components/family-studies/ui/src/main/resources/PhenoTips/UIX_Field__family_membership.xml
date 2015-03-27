@@ -217,8 +217,9 @@ if (newFamilyTrigger) {
   #if ($xcontext.action == 'edit')
     $xwiki.jsx.use('PhenoTips.UIX_Field__family_membership')
   #end
+  ##
 (% class="clear relatives-info" %)(((
-##    === $services.localization.render('phenotips.UIXField.family.heading') ===
+    ##=== $services.localization.render('phenotips.UIXField.family.heading') ===
     === Family ===
     {{html wiki='true'}}
     &lt;span class="buttonwrapper"&gt;
