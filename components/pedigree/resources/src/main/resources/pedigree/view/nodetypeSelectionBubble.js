@@ -166,7 +166,7 @@ var NodetypeSelectionBubble = Class.create({
             if (data.params.group) {
                 event["groupSize"] = this.numPersonsInGroup;
             }
-            
+            this.hide();
             if (this._siblingMode)
                 document.fire("pedigree:person:newsibling", event);
             else
@@ -180,8 +180,9 @@ var NodetypeSelectionBubble = Class.create({
             if (data.params.group) {
                 event["groupSize"] = this.numPersonsInGroup;
             }
+            this.hide();
             document.fire("pedigree:partnership:newchild", event);
-        }           
+        }
         this.hide();
     },
     

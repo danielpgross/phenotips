@@ -219,9 +219,16 @@ var Controller = Class.create({
             }
         }
 
-        // ...and display a OK/Cancel dialogue, calling "removeSelected()" on OK and "unhighlightSelected" on Cancel
-        editor.getOkCancelDialogue().show( 'All highlighted nodes will be removed. Do you want to proceed?',
-                                           'Delete nodes?', removeSelected, unhighlightSelected );
+        if (!editor.isFamilyPage()) {
+            // ...and display a OK/Cancel dialogue, calling "removeSelected()" on OK and "unhighlightSelected" on Cancel
+            editor.getOkCancelDialogue().show( '<br>All highlighted nodes will be removed. Do you want to proceed?<br><br>' +
+                                               '<br><font style="font-size:95%">(all persons in a pedigree should be connected, so all nodes no longer<br>connected to the proband have to be removed as well)</font>',
+                                               'Delete nodes?', removeSelected, unhighlightSelected );
+        } else {
+            editor.getOkCancelDialogue().show( '<br>All highlighted nodes will be removed. Do you want to proceed?<br><br>' +
+                    '<br><font style="font-size:95%">(all persons in a pedigree should be connected, so one of the disconnected sets of nodes has to be removed)</font>',
+                    'Delete nodes?', removeSelected, unhighlightSelected );
+        }
     },
 
     handleSetProperty: function(event)
@@ -825,12 +832,13 @@ Controller._checkPatientLinkValidity = function(callbackOnValid, linkID)
         method: 'POST',
         onSuccess: function(response) {
             if (response.responseJSON) {
+                var onCancelAssignPatient = function() {
+                    editor.getNodeMenu().update();
+                }
                 if (!response.responseJSON.validLink) {
-                    SaveLoadEngine._displayFamilyPedigreeInterfaceError(response.responseJSON);
+                    SaveLoadEngine._displayFamilyPedigreeInterfaceError(response.responseJSON,
+                            "Can't link to this person", "Can't link to this person: ", onCancelAssignPatient);
                 } else {
-                    var onCancelAssignPatient = function() {
-                        editor.getNodeMenu().update();
-                    }
                     editor.getOkCancelDialogue().show("Do you want to add patient " + linkID + " to this family?",
                             "Add patient to the family", callbackOnValid, onCancelAssignPatient);
                 }
