@@ -471,6 +471,9 @@ var Workspace = Class.create({
      * @param {Number} nodeID The id of the node
      */
     centerAroundNode: function(nodeID, instant, xCenterShift, yCenterShift) {
+        if (nodeID < 0) {  // proband for a family
+            nodeID = 0;
+        }
         var node = editor.getNode(nodeID);
         if(node) {
             var x = node.getX(),
