@@ -88,7 +88,7 @@ var PersonVisuals = Class.create(AbstractPersonVisuals, {
             this.getGenderShape().transform(["...s", 1.08]);
             this.getGenderShape().attr("stroke-width", 5.5);
         }
-        if(!editor.isUnsupportedBrowser() && this.getHoverBox()) {
+        if(!editor.isReadOnlyMode() && this.getHoverBox()) {
             this._genderGraphics.flatten().insertBefore(this.getFrontElements().flatten());
         }
         this.updateDisorderShapes();

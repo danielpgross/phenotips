@@ -820,22 +820,13 @@ Controller._propagateLastNameAtBirth = function( parentID, parentLastName, chang
 
 Controller._checkPatientLinkValidity = function(callbackOnValid, linkID)
 {
-    var familyServiceURL = new XWiki.Document('FamilyPedigreeInterface', 'PhenoTips').getURL('get', 'outputSyntax=plain');
+    var familyServiceURL = editor.getExternalEndpoint().getFamilyInterfaceURL();
     new Ajax.Request(familyServiceURL, {
         method: 'POST',
         onSuccess: function(response) {
             if (response.responseJSON) {
                 if (!response.responseJSON.validLink) {
-                    var errorMessage = response.responseJSON.errorMessage ? response.responseJSON.errorMessage : "Unknown problem";
-                    errorMessage = "<font color='#660000'>" + errorMessage + "</font><br><br><br>";
-                    if (response.responseJSON.errorType == "pedigreeConflict") {
-                        errorMessage += "(for now it is only possible to add persons without an already existing pedigree to a family)";
-                    }
-                    if (response.responseJSON.errorType == "permissions") {
-                        errorMessage += "(you need to have edit permissions for the patient to be able to add it to a family)";
-                    }
-                    editor.getOkCancelDialogue().showError('<br>Patient ' + linkID + ' can not be linked to from this pedigree: ' + errorMessage,
-                            "Can't link to this patient", "OK", undefined );
+                    SaveLoadEngine._displayFamilyPedigreeInterfaceError(response.responseJSON);
                 } else {
                     var onCancelAssignPatient = function() {
                         editor.getNodeMenu().update();
@@ -845,7 +836,7 @@ Controller._checkPatientLinkValidity = function(callbackOnValid, linkID)
                 }
             } else  {
                 editor.getOkCancelDialogue().showError('Server error - unable to verify validity of patient link',
-                        'Error saving pedigree', "OK", undefined );
+                        'Error verifying patient link', "OK", undefined );
             }
         },
         parameters: {"proband": editor.getGraph().getCurrentPatientId(), "link_to_id": linkID }
