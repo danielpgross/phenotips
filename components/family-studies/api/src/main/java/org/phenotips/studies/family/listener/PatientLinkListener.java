@@ -21,14 +21,12 @@ package org.phenotips.studies.family.listener;
 
 import org.phenotips.data.Patient;
 import org.phenotips.data.PatientRepository;
-import org.phenotips.data.events.PatientChangedEvent;
 import org.phenotips.studies.family.FamilyUtils;
 
 import org.xwiki.component.annotation.Component;
 import org.xwiki.observation.EventListener;
 import org.xwiki.observation.event.Event;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -75,7 +73,8 @@ public class PatientLinkListener implements EventListener
 
     public List<Event> getEvents()
     {
-        return Arrays.<Event>asList(new PatientChangedEvent());
+//        return Arrays.<Event>asList(new PatientChangedEvent());
+        return new LinkedList<>();
     }
 
     /** Receives a {@link org.phenotips.data.Patient} and {@link org.xwiki.users.User} objects. */

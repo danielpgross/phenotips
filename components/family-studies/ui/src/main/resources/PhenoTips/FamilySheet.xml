@@ -39,9 +39,11 @@
   <minorEdit>false</minorEdit>
   <syntaxId>xwiki/2.1</syntaxId>
   <hidden>false</hidden>
-  <content>{{velocity}}
+  <content>{{include document="PhenoTips.PatientSheetMacros" /}}
+
+{{velocity}}
   $xwiki.ssx.use('PhenoTips.PatientSheetCode')
-  $xwiki.ssx.use('PhenoTips.FamilySheet')
+  $xwiki.jsx.use('PhenoTips.FamilySheet')
   #set($familyObject = $doc.getObject('PhenoTips.FamilyClass'))
   #set($members = $familyObject.getProperty('members').getValue())
   ##
@@ -50,31 +52,39 @@
     == List of members ==
     &lt;div class='fieldset'&gt;
       #foreach ($m in $members)
-        &lt;div class='member'&gt;$m&lt;/div&gt;
+        #set ($patient = $xwiki.getDocument("data.${m}"))
+        #set ($externalId = $patient.getObject('PhenoTips.PatientClass').getProperty('external_id').getValue())
+        &lt;div&gt;&lt;a href="$xwiki.getURL($patient.getDocumentReference())" class='member'&gt;$m 
+        #if("$!{externalId}" != '') ($externalId) #end
+        &lt;/a&gt;&lt;/div&gt;
       #end
     &lt;/div&gt;
   &lt;/div&gt;
-  &lt;div id='reports' class='chapter clinical-info'&gt;
-    == Reports ==
-    &lt;div class='fieldset'&gt;
-    $doc.display('reports', $familyObject)
+  #if ($context.action != 'view' || !$doc.getObject('PhenoTips.FamilyClass').getProperty('reports').getValue().isEmpty())
+    &lt;div id='reports' class='chapter clinical-info'&gt;
+      == Reports ==
+      &lt;div class='fieldset'&gt;
+      $doc.display('reports', $familyObject)
+      &lt;/div&gt;
     &lt;/div&gt;
-  &lt;/div&gt;
+  #end
   {{/html}}##
+  (% id='pedigree' class='chapter clinical-info' %)(((
   #foreach ($e in $services.uix.getExtensions('org.phenotips.patientSheet.section.family-info'))
     #if ($e.getId() == 'org.phenotips.patientSheet.field.pedigree')
       {{html wiki=false clean=false}}$services.rendering.render($e.execute(), 'xhtml/1.0'){{/html}}
     #end
   #end
+  )))
 {{/velocity}}
 </content>
   <object>
     <name>PhenoTips.FamilySheet</name>
     <number>0</number>
-    <className>XWiki.StyleSheetExtension</className>
-    <guid>0edf7a5c-3727-4ecd-beaf-fe6a6a6c8280</guid>
+    <className>XWiki.JavaScriptExtension</className>
+    <guid>4fa03eb7-25cd-4aaf-9135-ed5c97ab31f2</guid>
     <class>
-      <name>XWiki.StyleSheetExtension</name>
+      <name>XWiki.JavaScriptExtension</name>
       <customClass/>
       <customMapping/>
       <defaultViewSheet/>
@@ -148,7 +158,17 @@
       <cache>long</cache>
     </property>
     <property>
-      <code/>
+      <code>var id = 'HPedigree';
+var originalHeader = $(id);
+var classes = originalHeader.readAttribute("class");
+var replacement = new Element('h2', {'id': id, 'class': classes});
+originalHeader.childElements().each(function(elem) {
+  replacement.insert({bottom: elem});  
+})
+originalHeader.insert({
+  before: replacement
+});
+originalHeader.remove();</code>
     </property>
     <property>
       <name/>
