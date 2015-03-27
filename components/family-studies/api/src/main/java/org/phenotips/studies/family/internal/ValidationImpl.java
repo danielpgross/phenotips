@@ -1,4 +1,4 @@
-package org.phenotips.studies.family.content;
+package org.phenotips.studies.family.internal;
 
 import org.phenotips.data.Patient;
 import org.phenotips.data.internal.PhenoTipsPatient;
@@ -56,22 +56,46 @@ public class ValidationImpl implements Validation
     private PatientAccessHelper patientAccessHelper;
 
     /**
+     * Checks if the patient is already present within the family members list.
+     *
+     * @param familyAnchor a patient within the family in question
+     */
+    public boolean isInFamily(String familyAnchor, String otherId) throws XWikiException
+    {
+        // not checking for nulls, so that an exception will be thrown
+        XWikiDocument familyDoc = familyUtils.getFamilyOfPatient(familyAnchor);
+        if (familyDoc == null) {
+            return false;
+        }
+        BaseObject familyClass = familyDoc.getXObject(FamilyUtils.FAMILY_CLASS);
+        DBStringListProperty members = (DBStringListProperty) familyClass.get("members");
+        return members.getList().contains(otherId.trim());
+    }
+
+    /**
      * Checks if the current {@link com.xpn.xwiki.XWikiContext}/user has sufficient access to this patent id and the
      * family to which the patient is being added to.
      * 1 - anchor does not belogn to a family, 2 - no access, 3 - pedigree exists for other true
      */
-    public int canAddToFamily(String familyAnchor, String patientId) throws XWikiException
+    public StatusResponse canAddToFamily(String familyAnchor, String patientId) throws XWikiException
     {
+        StatusResponse response = new StatusResponse();
+
         DocumentReference familyAnchorRef = referenceResolver.resolve(familyAnchor, Patient.DEFAULT_DATA_SPACE);
         EntityReference familyRef = familyUtils.getFamilyReference(familyUtils.getDoc(familyAnchorRef));
         if (familyRef == null) {
-            return 1;
+            response.statusCode = 404;
+            response.errorType = "noFamily";
+            response.message = "Cannot link nodes. Anchor node does not belong to a family.";
+            return response;
         }
         DocumentReference patientRef = referenceResolver.resolve(patientId, Patient.DEFAULT_DATA_SPACE);
         XWikiDocument patientDoc = familyUtils.getDoc(patientRef);
         if (patientDoc == null) {
-            throw new NullPointerException(
-                "Could not find the patient document of the patient to be added to the family.");
+            response.statusCode = 404;
+            response.errorType = "invalidId";
+            response.message = "Could not find the patient document of the patient to be added to the family.";
+            return response;
         }
         PatientAccess patientAccess =
             new DefaultPatientAccess(new PhenoTipsPatient(patientDoc), patientAccessHelper, permissionsManager);
@@ -81,43 +105,30 @@ public class ValidationImpl implements Validation
             if (familyUtils.getPedigree(patientDoc).isEmpty()) {
                 User currentUser = userManager.getCurrentUser();
                 if (authorizationService.hasAccess(currentUser, Right.EDIT, new DocumentReference(familyRef))) {
-                    return 0;
+                    response.statusCode = 200;
+                    return response;
                 }
-                return 2;
+                response.statusCode = 401;
+                response.errorType = "permissions";
+                response.message = "Insufficient permissions to edit the family record.";
+                return response;
             } else {
-                return 3;
+                response.statusCode = 501;
+                response.errorType = "existingPedigree";
+                response.message = "The patient to be added to the family has an existing pedigree.";
+                return response;
             }
         }
-        return 2;
+        response.statusCode = 401;
+        response.errorType = "permissions";
+        response.message = "Insufficient permissions to edit the patient record.";
+        return response;
     }
 
-    /**
-     * Checks if the patient is already present within the family members list.
-     *
-     * @param familyAnchor a patient within the family in question
-     */
-    public boolean isInFamily(String familyAnchor, String otherId) throws XWikiException
+
+    public boolean hasFamily(String id) throws XWikiException
     {
-        // not checking for nulls, so that an exception will be thrown
-        XWikiDocument familyDoc = this.getFamilyOfPatient(familyAnchor);
-        if (familyDoc == null) {
-            return false;
-        }
-        BaseObject familyClass = familyDoc.getXObject(FamilyUtils.FAMILY_CLASS);
-        DBStringListProperty members = (DBStringListProperty) familyClass.get("members");
-        return members.getList().contains(otherId.trim());
+        return familyUtils.getFamilyOfPatient(id) != null;
     }
 
-    // fixme. move to family utils
-
-    /**
-     * Does not check for nulls while retrieving the family document. Will throw an exception if any of the 'links in
-     * the chain' are not present.
-     */
-    private XWikiDocument getFamilyOfPatient(String patientId) throws XWikiException
-    {
-        DocumentReference patientRef = referenceResolver.resolve(patientId, Patient.DEFAULT_DATA_SPACE);
-        XWikiDocument patientDoc = familyUtils.getDoc(patientRef);
-        return familyUtils.getFamilyDoc(patientDoc);
-    }
 }

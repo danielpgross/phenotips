@@ -1,4 +1,4 @@
-package org.phenotips.studies.family.content;
+package org.phenotips.studies.family.internal;
 
 import net.sf.json.JSONObject;
 
@@ -13,30 +13,21 @@ public class StatusResponse
 
     public String errorType = "";
 
-    public String asFamilyStatus(boolean isFamily, boolean hasFamily) {
-        boolean isError = statusCode != 200;
-        JSONObject json = basicJson();
-        json.put("error", isError);
-        json.put("isFamilyPage", isFamily);
-        json.put("hasFamily", hasFamily);
-        return json.toString();
-    }
-
     public String asProcessing() {
         boolean isError = statusCode != 200;
-        JSONObject json = basicJson();
+        JSONObject json = baseErrorJson();
         json.put("error", isError);
         return json.toString();
     }
 
     public String asVerification() {
         boolean valid = statusCode != 200;
-        JSONObject json = basicJson();
+        JSONObject json = baseErrorJson();
         json.put("validLink", valid);
         return json.toString();
     }
 
-    private JSONObject basicJson() {
+    private JSONObject baseErrorJson() {
         JSONObject json = new JSONObject();
         json.put("errorMessage", message);
         json.put("errorType", errorType);

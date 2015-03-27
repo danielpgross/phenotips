@@ -19,6 +19,8 @@
  */
 package org.phenotips.studies.family.listener;
 
+import org.phenotips.data.Patient;
+import org.phenotips.data.PatientRepository;
 import org.phenotips.data.events.PatientChangedEvent;
 import org.phenotips.studies.family.FamilyUtils;
 
@@ -62,6 +64,9 @@ public class PatientLinkListener implements EventListener
     @Inject
     Provider<XWikiContext> provider;
 
+    @Inject
+    PatientRepository patientRepository;
+
     @Override
     public String getName()
     {
@@ -97,7 +102,15 @@ public class PatientLinkListener implements EventListener
                 // replacing whatever relatives were in the list part of the family. Has no effect on the tree/pedigree
                 Set<String> updatedSet = new HashSet<>();
                 updatedSet.addAll(familyUtilsImpl.getFamilyMembers(familyObject));
-                updatedSet.addAll(relatives);
+                // checking if relatives are external ids; if yes converting to internal ids
+                for (String relative : relatives) {
+                    Patient byExternal = patientRepository.getPatientByExternalId(relative);
+                    if (byExternal != null) {
+                        updatedSet.add(byExternal.getDocument().getName());
+                    } else if (patientRepository.getPatientById(relative) != null) {
+                        updatedSet.add(relative);
+                    }
+                }
                 List<String> transferList = new LinkedList<>();
                 transferList.addAll(updatedSet);
 

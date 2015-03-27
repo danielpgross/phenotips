@@ -17,7 +17,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.phenotips.studies.family.content;
+package org.phenotips.studies.family.internal;
 
 import org.phenotips.Constants;
 import org.phenotips.data.Patient;
@@ -128,6 +128,17 @@ public class FamilyUtilsImpl implements FamilyUtils
             }
         }
         return null;
+    }
+
+    /**
+     * Does not check for nulls while retrieving the family document. Will throw an exception if any of the 'links in
+     * the chain' are not present.
+     */
+    public XWikiDocument getFamilyOfPatient(String patientId) throws XWikiException
+    {
+        DocumentReference patientRef = referenceResolver.resolve(patientId, Patient.DEFAULT_DATA_SPACE);
+        XWikiDocument patientDoc = this.getDoc(patientRef);
+        return this.getFamilyDoc(patientDoc);
     }
 
     /** @return null on error, an empty {@link net.sf.json.JSON} if there is no pedigree, or the existing pedigree. */

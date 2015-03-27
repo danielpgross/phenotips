@@ -22,7 +22,7 @@ package org.phenotips.studies.family.script;
 import org.phenotips.studies.family.FamilyUtils;
 import org.phenotips.studies.family.Processing;
 import org.phenotips.studies.family.Validation;
-import org.phenotips.studies.family.content.StatusResponse;
+import org.phenotips.studies.family.internal.StatusResponse;
 
 import org.xwiki.component.annotation.Component;
 import org.xwiki.model.reference.DocumentReference;
@@ -69,6 +69,18 @@ public class FamilyScriptService implements ScriptService
     }
 
     /** Can return null. */
+    public DocumentReference getPatientsFamily(XWikiDocument patient)
+    {
+        try {
+            XWikiDocument doc = utils.getFamilyDoc(patient);
+            return doc != null ? doc.getDocumentReference() : null;
+        } catch (XWikiException ex) {
+            logger.error("Could not get patient's family {}", ex.getMessage());
+        }
+        return null;
+    }
+
+    /** Can return null. */
     public String getFamilyStatus(String id)
     {
         StatusResponse response = new StatusResponse();
@@ -81,12 +93,11 @@ public class FamilyScriptService implements ScriptService
             if (hasFamily) {
                 isFamily = familyDoc.getDocumentReference() == doc.getDocumentReference();
             }
-            response.statusCode = 200;
+            return familyStatusResponse(isFamily, hasFamily);
         } catch (XWikiException ex) {
             logger.error("Could not get patient's family {}", ex.getMessage());
-            response.statusCode = 500;
+            return "";
         }
-        return response.asFamilyStatus(isFamily, hasFamily);
     }
 
     /**
@@ -94,39 +105,39 @@ public class FamilyScriptService implements ScriptService
      */
     public String verifyLinkable(String thisId, String otherId)
     {
-        int status = 200;
-        try {
-            if (validation.isInFamily(thisId, otherId)) {
-                status = 208;
-            } else {
-                int canAddCode = validation.canAddToFamily(thisId, otherId);
-                if (canAddCode == 1) {
-                    status = 401;
-                } else if (canAddCode == 2) {
-                    // cannot add patients with existing pedigrees to a family
-                    status = 501;
-                }
-            }
-            // if thisId does not belong to a family still returns 200.
-            status = 200;
-        } catch (XWikiException ex) {
-            status = 500;
-        }
         StatusResponse response = new StatusResponse();
-        response.statusCode = status;
-        return response.asVerification();
+        try {
+            if (validation.hasFamily(otherId)) {
+                response.statusCode = 501;
+                response.errorType = "familyConflict";
+                response.message = "This patient already exists in this family.";
+                return response.asVerification();
+            } else if (validation.isInFamily(thisId, otherId)) {
+                response.statusCode = 208;
+                response.errorType = "alreadyExists";
+                response.message = "This patient already exists in this family.";
+                return response.asVerification();
+            } else {
+                return validation.canAddToFamily(thisId, otherId).asVerification();
+            }
+        } catch (XWikiException ex) {
+            return "";
+        }
     }
 
     public String processPedigree(String anchorId, String json, String image)
     {
-        int status;
         try {
-            status = this.processing.processPatientPedigree(anchorId, JSONObject.fromObject(json), image);
+            return this.processing.processPatientPedigree(anchorId, JSONObject.fromObject(json), image).asProcessing();
         } catch (Exception ex) {
-            status = 500;
+            return "";
         }
-        StatusResponse response = new StatusResponse();
-        response.statusCode = status;
-        return response.asProcessing();
+    }
+
+    private static String familyStatusResponse(boolean isFamily, boolean hasFamily) {
+        JSONObject json = new JSONObject();
+        json.put("isFamilyPage", isFamily);
+        json.put("hasFamily", hasFamily);
+        return json.toString();
     }
 }

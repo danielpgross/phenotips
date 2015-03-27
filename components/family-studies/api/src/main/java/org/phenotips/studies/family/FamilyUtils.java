@@ -51,9 +51,11 @@ public interface FamilyUtils
 
     XWikiDocument getDoc(EntityReference docRef) throws XWikiException;
 
-    public XWikiDocument getFromDataSpace(String id) throws XWikiException;
+    XWikiDocument getFromDataSpace(String id) throws XWikiException;
 
     XWikiDocument getFamilyDoc(XWikiDocument patient) throws XWikiException;
+
+    XWikiDocument getFamilyOfPatient(String patientId) throws XWikiException;
 
     JSONObject getPedigree(XWikiDocument doc);
 

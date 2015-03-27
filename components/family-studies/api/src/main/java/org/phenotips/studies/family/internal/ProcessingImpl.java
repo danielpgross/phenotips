@@ -1,4 +1,4 @@
-package org.phenotips.studies.family.content;
+package org.phenotips.studies.family.internal;
 
 import org.phenotips.data.Patient;
 import org.phenotips.data.PatientRepository;
@@ -48,11 +48,19 @@ public class ProcessingImpl implements Processing
     private DocumentReferenceResolver<String> referenceResolver;
 
     // fixme make it throw exceptions
-    public int processPatientPedigree(String anchorId, JSONObject json, String image) throws XWikiException
+    public StatusResponse processPatientPedigree(String anchorId, JSONObject json, String image) throws XWikiException
     {
+        StatusResponse response = new StatusResponse();
         DocumentReference anchorRef = referenceResolver.resolve(anchorId, Patient.DEFAULT_DATA_SPACE);
         XWikiDocument anchorDoc = familyUtils.getDoc(anchorRef);
         XWikiDocument familyDoc = familyUtils.getFamilyDoc(anchorDoc);
+
+        if (anchorDoc == null) {
+            response.statusCode = 404;
+            response.errorType = "invalidId";
+            response.message = "The family/patient id is invalid";
+            return response;
+        }
 
         if (familyDoc != null) {
             List<String> members = familyUtils.getFamilyMembers(familyDoc);
@@ -62,7 +70,10 @@ public class ProcessingImpl implements Processing
 
             if (updatedMembers.size() < 1) {
                 // the list of members should not be empty.
-                return 412;
+                response.statusCode = 412;
+                response.errorType = "invalidUpdate";
+                response.message = "The family has no members. Please specify at least one patient link.";
+                return response;
             }
 
             // remove and add do not take care of modifying the 'members' property
@@ -75,7 +86,8 @@ public class ProcessingImpl implements Processing
             this.storePedigree(anchorDoc, json, image, context, context.getWiki());
         }
 
-        return 200;
+        response.statusCode = 200;
+        return response;
     }
 
     private void storeFamilyRepresentation(XWikiDocument family, List<String> updatedMembers, JSON familyContents,
