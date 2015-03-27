@@ -84,20 +84,18 @@ public class FamilyScriptService implements ScriptService
     /** Can return null. */
     public JSON getFamilyStatus(String id)
     {
-        StatusResponse response = new StatusResponse();
         boolean isFamily = false;
-        boolean hasFamily = false;
         try {
             XWikiDocument doc = utils.getFromDataSpace(id);
             XWikiDocument familyDoc = utils.getFamilyDoc(doc);
-            hasFamily = familyDoc != null;
+            boolean hasFamily = familyDoc != null;
             if (hasFamily) {
                 isFamily = familyDoc.getDocumentReference() == doc.getDocumentReference();
             }
             return familyStatusResponse(isFamily, hasFamily);
         } catch (XWikiException ex) {
             logger.error("Could not get patient's family {}", ex.getMessage());
-            return new JSONObject(true);
+            return new JSONObject();
         }
     }
 
@@ -111,18 +109,18 @@ public class FamilyScriptService implements ScriptService
             if (validation.hasFamily(otherId)) {
                 response.statusCode = 501;
                 response.errorType = "familyConflict";
-                response.message = "This patient belongs to a different family.";
+                response.message = String.format("Patient %s belongs to a different family.", otherId);
                 return response.asVerification();
             } else if (validation.isInFamily(thisId, otherId)) {
                 response.statusCode = 208;
                 response.errorType = "alreadyExists";
-                response.message = "This patient already exists in this family.";
+                response.message = String.format("Patient %s already exists in this family.", otherId);
                 return response.asVerification();
             } else {
                 return validation.canAddToFamily(thisId, otherId).asVerification();
             }
         } catch (XWikiException ex) {
-            return new JSONObject(true);
+            return new JSONObject();
         }
     }
 
@@ -131,7 +129,7 @@ public class FamilyScriptService implements ScriptService
         try {
             return this.processing.processPatientPedigree(anchorId, JSONObject.fromObject(json), image).asProcessing();
         } catch (Exception ex) {
-            return new JSONObject(true);
+            return new JSONObject();
         }
     }
 

@@ -75,7 +75,6 @@ public class ValidationImpl implements Validation
     /**
      * Checks if the current {@link com.xpn.xwiki.XWikiContext}/user has sufficient access to this patent id and the
      * family to which the patient is being added to.
-     * 1 - anchor does not belogn to a family, 2 - no access, 3 - pedigree exists for other true
      */
     public StatusResponse canAddToFamily(String familyAnchor, String patientId) throws XWikiException
     {
@@ -86,7 +85,8 @@ public class ValidationImpl implements Validation
         if (familyRef == null) {
             response.statusCode = 404;
             response.errorType = "noFamily";
-            response.message = "Cannot link nodes. Anchor node does not belong to a family.";
+            // Anchor = proband for better understanding by users
+            response.message = "Cannot link patients. Proband node does not belong to a family.";
             return response;
         }
         DocumentReference patientRef = referenceResolver.resolve(patientId, Patient.DEFAULT_DATA_SPACE);
@@ -94,7 +94,9 @@ public class ValidationImpl implements Validation
         if (patientDoc == null) {
             response.statusCode = 404;
             response.errorType = "invalidId";
-            response.message = "Could not find the patient document of the patient to be added to the family.";
+            response.message = String
+                .format("Could not find patient %s.",
+                    patientId);
             return response;
         }
         PatientAccess patientAccess =
@@ -115,20 +117,19 @@ public class ValidationImpl implements Validation
             } else {
                 response.statusCode = 501;
                 response.errorType = "existingPedigree";
-                response.message = "The patient to be added to the family has an existing pedigree.";
+                response.message =
+                    String.format("Patient %s has an existing pedigree.", patientId);
                 return response;
             }
         }
         response.statusCode = 401;
         response.errorType = "permissions";
-        response.message = "Insufficient permissions to edit the patient record.";
+        response.message = String.format("Insufficient permissions to edit the patient record (%s).", patientId);
         return response;
     }
-
 
     public boolean hasFamily(String id) throws XWikiException
     {
         return familyUtils.getFamilyOfPatient(id) != null;
     }
-
 }

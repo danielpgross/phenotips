@@ -9,6 +9,7 @@ import org.xwiki.component.annotation.Component;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.DocumentReferenceResolver;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -55,21 +56,24 @@ public class ProcessingImpl implements Processing
         XWikiDocument anchorDoc = familyUtils.getDoc(anchorRef);
         XWikiDocument familyDoc = familyUtils.getFamilyDoc(anchorDoc);
 
-        if (anchorDoc == null) {
+        if (anchorDoc == null) {  // fixme must check for all conditions as in verify linkable
             response.statusCode = 404;
             response.errorType = "invalidId";
-            response.message = "The family/patient id is invalid";
+            response.message = String.format("The family/patient %s is invalid", anchorId);
             return response;
         }
 
         if (familyDoc != null) {
             List<String> members = familyUtils.getFamilyMembers(familyDoc);
             List<String> updatedMembers = this.extractIdsFromPedigree(json);
+
             // sometimes pedigree passes in family document name as a member
             updatedMembers.remove(familyDoc.getDocumentReference().getName());
+            members = Collections.unmodifiableList(members);
+            updatedMembers = Collections.unmodifiableList(updatedMembers);
+
             // storing first, because pedigree depends on this.
             this.storeFamilyRepresentation(familyDoc, updatedMembers, json, image);
-
             if (updatedMembers.size() < 1) {
                 // the list of members should not be empty.
                 response.statusCode = 412;
@@ -78,10 +82,10 @@ public class ProcessingImpl implements Processing
                 return response;
             }
 
-            // remove and add do not take care of modifying the 'members' property
-            familyUtils.setFamilyMembers(familyDoc, updatedMembers);
             this.removeMembersNotPresent(members, updatedMembers);
             this.addNewMembers(members, updatedMembers, familyDoc);
+            // remove and add do not take care of modifying the 'members' property
+            familyUtils.setFamilyMembers(familyDoc, updatedMembers);
         } else {
             // when saving just a patient's pedigree that does not belong to a family
             XWikiContext context = provider.get();
@@ -154,8 +158,10 @@ public class ProcessingImpl implements Processing
                 if (patient != null) {
                     XWikiDocument patientDoc = wiki.getDocument(patient.getDocument(), context);
                     BaseObject familyRefObj = patientDoc.getXObject(FamilyUtils.FAMILY_REFERENCE);
-                    patientDoc.removeXObject(familyRefObj);
-                    wiki.saveDocument(patientDoc, context);
+                    if (familyRefObj != null) {
+                        patientDoc.removeXObject(familyRefObj);
+                        wiki.saveDocument(patientDoc, context);
+                    }
                 }
             }
         }

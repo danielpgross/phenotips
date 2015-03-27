@@ -40,13 +40,25 @@
   <syntaxId>xwiki/2.1</syntaxId>
   <hidden>false</hidden>
   <content>{{velocity}}
-  #if ("$!request.patient_id" != '')
-    #set ($family = $services.family.createFamily($request.patient_id))
-    #if ("$!{family}" != '')
-      $response.sendRedirect($xwiki.getURL($family, 'edit'))
-    #else
-      $response.sendRedirect($xwiki.getURL("data.${request.patient_id}", 'edit'))
-    #end
+  #if ("$!{request.patient_id}" != '')
+    {{html wiki="true"}}
+      &lt;form&gt;
+  	    {{warning}}You confirm your understanding that, when modifying pedigrees of any family member or the pedigree of the family itself, those modifications will overwrite the existing pedigrees of all family members and the family itself.{{/warning}}
+     	&lt;p class="buttonwrapper" style="text-align:center;"&gt;
+     	  &lt;input type="submit" class="button" value="Confirm"&gt;
+     	&lt;p&gt;
+     	&lt;input type="hidden" value="$!{request.patient_id}" name="patient_id"&gt;
+     	&lt;input type="hidden" value="true" name="confirmation"&gt;
+      &lt;/form&gt;
+    {{/html}}
+    #if ("$!{request.confirmation}" == 'true')
+	  #set ($family = $services.family.createFamily($request.patient_id))
+	  #if ("$!{family}" != '')
+	    $response.sendRedirect($xwiki.getURL($family, 'edit'))
+	  #else
+	    $response.sendRedirect($xwiki.getURL("data.${request.patient_id}", 'edit'))
+	  #end
+	#end
   #end
 {{/velocity}}</content>
 </xwikidoc>
