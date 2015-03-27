@@ -844,7 +844,7 @@ Controller._checkPatientLinkValidity = function(callbackOnValid, linkID)
                 }
             } else  {
                 editor.getOkCancelDialogue().showError('Server error - unable to verify validity of patient link',
-                        'Error verifying patient link', "OK", undefined );
+                        'Error verifying patient link', "OK", onCancelAssignPatient );
             }
         },
         parameters: {"proband": editor.getGraph().getCurrentPatientId(), "link_to_id": linkID }
