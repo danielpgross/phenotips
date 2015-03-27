@@ -106,15 +106,10 @@ public class FamilyScriptService implements ScriptService
     {
         StatusResponse response = new StatusResponse();
         try {
-            if (validation.hasFamily(otherId)) {
+            if (validation.hasOtherFamily(otherId)) {
                 response.statusCode = 501;
                 response.errorType = "familyConflict";
                 response.message = String.format("Patient %s belongs to a different family.", otherId);
-                return response.asVerification();
-            } else if (validation.isInFamily(thisId, otherId)) {
-                response.statusCode = 208;
-                response.errorType = "alreadyExists";
-                response.message = String.format("Patient %s already exists in this family.", otherId);
                 return response.asVerification();
             } else {
                 return validation.canAddToFamily(thisId, otherId).asVerification();
@@ -136,7 +131,7 @@ public class FamilyScriptService implements ScriptService
     private static JSON familyStatusResponse(boolean isFamily, boolean hasFamily) {
         JSONObject json = new JSONObject();
         json.put("isFamilyPage", isFamily);
-        json.put("hasFamily", hasFamily);
+        json.put("hasOtherFamily", hasFamily);
         return json;
     }
 }

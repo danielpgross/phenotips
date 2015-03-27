@@ -4,6 +4,7 @@ import org.phenotips.data.Patient;
 import org.phenotips.data.PatientRepository;
 import org.phenotips.studies.family.FamilyUtils;
 import org.phenotips.studies.family.Processing;
+import org.phenotips.studies.family.Validation;
 
 import org.xwiki.component.annotation.Component;
 import org.xwiki.model.reference.DocumentReference;
@@ -48,6 +49,9 @@ public class ProcessingImpl implements Processing
     @Named("current")
     private DocumentReferenceResolver<String> referenceResolver;
 
+    @Inject
+    private Validation validation;
+
     // fixme make it throw exceptions
     public StatusResponse processPatientPedigree(String anchorId, JSONObject json, String image) throws XWikiException
     {
@@ -67,13 +71,20 @@ public class ProcessingImpl implements Processing
             List<String> members = familyUtils.getFamilyMembers(familyDoc);
             List<String> updatedMembers = this.extractIdsFromPedigree(json);
 
+            StatusResponse duplicationStatus = this.checkForDuplicates(updatedMembers);
+            if (duplicationStatus.statusCode != 200) {
+                return duplicationStatus;
+            }
             // sometimes pedigree passes in family document name as a member
             updatedMembers.remove(familyDoc.getDocumentReference().getName());
             members = Collections.unmodifiableList(members);
             updatedMembers = Collections.unmodifiableList(updatedMembers);
 
             // storing first, because pedigree depends on this.
-            this.storeFamilyRepresentation(familyDoc, updatedMembers, json, image);
+            StatusResponse storingResponse = this.storeFamilyRepresentation(familyDoc, updatedMembers, json, image);
+            if (storingResponse.statusCode != 200) {
+                return storingResponse;
+            }
             if (updatedMembers.size() < 1) {
                 // the list of members should not be empty.
                 response.statusCode = 412;
@@ -87,6 +98,9 @@ public class ProcessingImpl implements Processing
             // remove and add do not take care of modifying the 'members' property
             familyUtils.setFamilyMembers(familyDoc, updatedMembers);
         } else {
+            if (!validation.hasPatientEditAccess(anchorDoc)) {
+                return validation.insufficientPermissionsResponse(anchorId);
+            }
             // when saving just a patient's pedigree that does not belong to a family
             XWikiContext context = provider.get();
             this.storePedigree(anchorDoc, json, image, context, context.getWiki());
@@ -96,22 +110,45 @@ public class ProcessingImpl implements Processing
         return response;
     }
 
-    private void storeFamilyRepresentation(XWikiDocument family, List<String> updatedMembers, JSON familyContents,
-        String image)
-        throws XWikiException
+    private StatusResponse checkForDuplicates(List<String> updatedMembers)
+    {
+        StatusResponse response = new StatusResponse();
+        List<String> duplicationCheck = new LinkedList<>();
+        duplicationCheck.addAll(updatedMembers);
+        for (String member : updatedMembers) {
+            duplicationCheck.remove(member);
+            if (duplicationCheck.contains(member)) {
+                response.statusCode = 400;
+                response.errorType = "duplicate";
+                response.message = String.format("There is a duplicate link for patient %s", member);
+            }
+        }
+
+        response.statusCode = 200;
+        return response;
+    }
+
+    private StatusResponse storeFamilyRepresentation(XWikiDocument family, List<String> updatedMembers,
+        JSON familyContents, String image) throws XWikiException
     {
         XWikiContext context = provider.get();
         XWiki wiki = context.getWiki();
         for (String member : updatedMembers) {
-            Patient patient = patientRepository.getPatientById(member);
-            if (patient != null) {
-                XWikiDocument patientDoc = wiki.getDocument(patient.getDocument(), context);
-                this.storePedigree(patientDoc, familyContents, image, context, wiki);
+            StatusResponse patientResponse = validation.canAddToFamily(family, member);
+            if (patientResponse.statusCode != 200) {
+                return patientResponse;
             }
+            XWikiDocument patientDoc = wiki.getDocument(patientRepository.getPatientById(member).getDocument(), context);
+            this.storePedigree(patientDoc, familyContents, image, context, wiki);
         }
-        this.storePedigree(family, familyContents, image, context, wiki);
+        StatusResponse familyResponse = validation.familyAccessResponse(family);
+        if (familyResponse.statusCode == 200) {
+            this.storePedigree(family, familyContents, image, context, wiki);
+        }
+        return familyResponse;
     }
 
+    /** Does not do permission checks. */
     private void storePedigree(XWikiDocument document, JSON pedigree, String image, XWikiContext context, XWiki wiki)
         throws XWikiException
     {
@@ -167,14 +204,15 @@ public class ProcessingImpl implements Processing
         }
     }
 
-    private void addNewMembers(List<String> currentMembers, List<String> updatedMembers, XWikiDocument familyDoc) throws XWikiException
+    private void addNewMembers(List<String> currentMembers, List<String> updatedMembers, XWikiDocument familyDoc)
+        throws XWikiException
     {
         List<String> newMembers = new LinkedList<>();
         newMembers.addAll(updatedMembers);
         if (newMembers.removeAll(currentMembers) && !newMembers.isEmpty()) {
             XWikiContext context = provider.get();
             XWiki wiki = context.getWiki();
-            for (String newMember: newMembers) {
+            for (String newMember : newMembers) {
                 Patient patient = patientRepository.getPatientById(newMember);
                 if (patient != null) {
                     XWikiDocument patientDoc = wiki.getDocument(patient.getDocument(), context);
