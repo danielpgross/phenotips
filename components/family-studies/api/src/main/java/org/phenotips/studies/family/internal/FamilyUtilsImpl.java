@@ -32,6 +32,7 @@ import org.xwiki.query.Query;
 import org.xwiki.query.QueryException;
 import org.xwiki.query.QueryManager;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -54,6 +55,7 @@ import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.BaseObject;
 import com.xpn.xwiki.objects.DBStringListProperty;
 import com.xpn.xwiki.objects.LargeStringProperty;
+import com.xpn.xwiki.objects.StringProperty;
 
 import groovy.lang.Singleton;
 import net.sf.json.JSONObject;
@@ -69,6 +71,9 @@ public class FamilyUtilsImpl implements FamilyUtils
 
     private final EntityReference RELATIVEREFERENCE =
         new EntityReference("RelativeClass", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
+
+    private final EntityReference RIGHTS_CLASS =
+        new EntityReference("XWikiRights", EntityType.DOCUMENT, new EntityReference("XWiki", EntityType.SPACE));
 
     @Inject
     private Provider<XWikiContext> provider;
@@ -212,6 +217,11 @@ public class FamilyUtilsImpl implements FamilyUtils
             BaseObject familyObject = newFamilyDoc.getXObject(FAMILY_CLASS);
             familyObject.set("identifier", nextId, context);
 
+            BaseObject permissions = newFamilyDoc.getXObject(RIGHTS_CLASS);
+            permissions.set("users", getAllWithEditAccess(patientDoc), context);
+            permissions.set("levels", "view,edit", context);
+            permissions.set("allow", 1, context);
+
             // adding the creating patient as a member
             List<String> members = new LinkedList<>();
             members.add(patientDoc.getDocumentReference().getName());
@@ -222,6 +232,18 @@ public class FamilyUtilsImpl implements FamilyUtils
             wiki.saveDocument(patientDoc, context);
         }
         return newFamilyDoc;
+    }
+
+    private String getAllWithEditAccess(XWikiDocument patientDoc) {
+        Collection<BaseObject> rightsObjects = patientDoc.getXObjects(RIGHTS_CLASS);
+        String users = "";
+        for (BaseObject rights : rightsObjects) {
+            String[] levels = ((StringProperty) rights.getField("levels")).getValue().split(",");
+            if (Arrays.asList(levels).contains("edit")) {
+                users += "," + ((LargeStringProperty) rights.getField("users")).getValue();
+            }
+        }
+        return users;
     }
 
     public void setFamilyReference(XWikiDocument patientDoc, XWikiDocument familyDoc, XWikiContext context)

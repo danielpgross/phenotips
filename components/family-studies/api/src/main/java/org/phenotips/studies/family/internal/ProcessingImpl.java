@@ -99,7 +99,7 @@ public class ProcessingImpl implements Processing
             familyUtils.setFamilyMembers(familyDoc, updatedMembers);
         } else {
             if (!validation.hasPatientEditAccess(anchorDoc)) {
-                return validation.insufficientPermissionsResponse(anchorId);
+                return validation.createInsufficientPermissionsResponse(anchorId);
             }
             // when saving just a patient's pedigree that does not belong to a family
             XWikiContext context = provider.get();
@@ -121,6 +121,7 @@ public class ProcessingImpl implements Processing
                 response.statusCode = 400;
                 response.errorType = "duplicate";
                 response.message = String.format("There is a duplicate link for patient %s", member);
+                return response;
             }
         }
 
@@ -133,18 +134,24 @@ public class ProcessingImpl implements Processing
     {
         XWikiContext context = provider.get();
         XWiki wiki = context.getWiki();
+        // first check that the user has permissions for all patients
         for (String member : updatedMembers) {
             StatusResponse patientResponse = validation.canAddToFamily(family, member);
             if (patientResponse.statusCode != 200) {
                 return patientResponse;
             }
+        }
+        // only then actually store the changes
+        for (String member : updatedMembers) {
             XWikiDocument patientDoc = wiki.getDocument(patientRepository.getPatientById(member).getDocument(), context);
             this.storePedigree(patientDoc, familyContents, image, context, wiki);
         }
-        StatusResponse familyResponse = validation.familyAccessResponse(family);
-        if (familyResponse.statusCode == 200) {
-            this.storePedigree(family, familyContents, image, context, wiki);
-        }
+        // todo for now forgo family access check, because of inability to modify those permissions.
+        // StatusResponse familyResponse = validation.checkFamilyAccessWithResponse(family);
+        this.storePedigree(family, familyContents, image, context, wiki);
+
+        StatusResponse familyResponse = new StatusResponse();
+        familyResponse.statusCode = 200;
         return familyResponse;
     }
 
@@ -187,7 +194,8 @@ public class ProcessingImpl implements Processing
     {
         List<String> toRemove = new LinkedList<>();
         toRemove.addAll(currentMembers);
-        if (toRemove.removeAll(updatedMembers) && !toRemove.isEmpty()) {
+        toRemove.removeAll(updatedMembers);
+        if (!toRemove.isEmpty()) {
             XWikiContext context = provider.get();
             XWiki wiki = context.getWiki();
             for (String oldMember : toRemove) {
@@ -209,7 +217,8 @@ public class ProcessingImpl implements Processing
     {
         List<String> newMembers = new LinkedList<>();
         newMembers.addAll(updatedMembers);
-        if (newMembers.removeAll(currentMembers) && !newMembers.isEmpty()) {
+        newMembers.removeAll(currentMembers);
+        if (!newMembers.isEmpty()) {
             XWikiContext context = provider.get();
             XWiki wiki = context.getWiki();
             for (String newMember : newMembers) {

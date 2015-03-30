@@ -15,11 +15,11 @@ public interface Validation
     StatusResponse canAddToFamily(XWikiDocument familyDoc, String patientId)
         throws XWikiException;
 
-    StatusResponse familyAccessResponse(XWikiDocument familyDoc);
+    StatusResponse checkFamilyAccessWithResponse(XWikiDocument familyDoc);
 
-    StatusResponse insufficientPermissionsResponse(String patientId);
+    StatusResponse createInsufficientPermissionsResponse(String patientId);
 
     boolean hasPatientEditAccess(XWikiDocument patientDoc);
 
-    boolean hasOtherFamily(String id) throws XWikiException;
+    boolean hasOtherFamily(String thisId, String otherId) throws XWikiException;
 }

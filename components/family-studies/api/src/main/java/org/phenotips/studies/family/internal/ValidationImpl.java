@@ -12,12 +12,9 @@ import org.phenotips.studies.family.Validation;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.DocumentReferenceResolver;
-import org.xwiki.model.reference.EntityReference;
 import org.xwiki.security.authorization.Right;
 import org.xwiki.users.User;
 import org.xwiki.users.UserManager;
-
-import java.util.List;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -66,10 +63,9 @@ public class ValidationImpl implements Validation
      */
     public StatusResponse canAddToFamily(String familyAnchor, String patientId) throws XWikiException
     {
-        DocumentReference familyAnchorRef = referenceResolver.resolve(familyAnchor, Patient.DEFAULT_DATA_SPACE);
-        EntityReference familyRef = familyUtils.getFamilyReference(familyUtils.getDoc(familyAnchorRef));
+        XWikiDocument family = familyUtils.getFamilyDoc(familyUtils.getFromDataSpace(familyAnchor));
 
-        return canAddToFamily(familyRef != null ? familyUtils.getDoc(familyRef) : null, patientId);
+        return canAddToFamily(family, patientId);
     }
 
     public StatusResponse canAddToFamily(XWikiDocument familyDoc, String patientId)
@@ -96,7 +92,11 @@ public class ValidationImpl implements Validation
         boolean hasPatientAccess = this.hasPatientEditAccess(patientDoc);
         if (hasPatientAccess) {
             if (familyUtils.getPedigree(patientDoc).isEmpty() || this.isInFamily(familyDoc, patientId)) {
-                return this.familyAccessResponse(familyDoc);
+                // todo for now forgo family access check, because of inability to modify those permissions.
+                // return this.checkFamilyAccessWithResponse(familyDoc);
+                StatusResponse familyResponse = new StatusResponse();
+                familyResponse.statusCode = 200;
+                return familyResponse;
             } else {
                 response.statusCode = 501;
                 response.errorType = "existingPedigree";
@@ -105,16 +105,17 @@ public class ValidationImpl implements Validation
                 return response;
             }
         }
-        return this.insufficientPermissionsResponse(patientId);
+        return this.createInsufficientPermissionsResponse(patientId);
     }
 
     public boolean hasPatientEditAccess(XWikiDocument patientDoc) {
+        User currentUser = userManager.getCurrentUser();
         PatientAccess patientAccess = permissionsManager.getPatientAccess(new PhenoTipsPatient(patientDoc));
-        AccessLevel patientAccessLevel = patientAccess.getAccessLevel(patientDoc.getDocumentReference());
+        AccessLevel patientAccessLevel = patientAccess.getAccessLevel(currentUser.getProfileDocument());
         return patientAccessLevel.compareTo(editAccess) >= 0;
     }
 
-    public StatusResponse insufficientPermissionsResponse(String patientId) {
+    public StatusResponse createInsufficientPermissionsResponse(String patientId) {
         StatusResponse response = new StatusResponse();
         response.statusCode = 401;
         response.errorType = "permissions";
@@ -122,7 +123,7 @@ public class ValidationImpl implements Validation
         return response;
     }
 
-    public StatusResponse familyAccessResponse(XWikiDocument familyDoc) {
+    public StatusResponse checkFamilyAccessWithResponse(XWikiDocument familyDoc) {
         StatusResponse response = new StatusResponse();
         User currentUser = userManager.getCurrentUser();
         if (authorizationService.hasAccess(currentUser, Right.EDIT, new DocumentReference(familyDoc.getDocumentReference()))) {
@@ -135,12 +136,12 @@ public class ValidationImpl implements Validation
         return response;
     }
 
-    public boolean hasOtherFamily(String id) throws XWikiException
+    public boolean hasOtherFamily(String thisId, String otherId) throws XWikiException
     {
-        XWikiDocument familyDoc = familyUtils.getFamilyOfPatient(id);
+        XWikiDocument familyDoc = familyUtils.getFamilyOfPatient(otherId);
         if (familyDoc != null) {
-            List<String> members = familyUtils.getFamilyMembers(familyDoc);
-            return members.contains(id);
+            XWikiDocument thisDoc = familyUtils.getFromDataSpace(thisId);
+            return familyDoc.getDocumentReference() != familyUtils.getFamilyDoc(thisDoc).getDocumentReference();
         } else {
             return false;
         }

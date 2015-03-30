@@ -53,7 +53,7 @@ public interface FamilyUtils
 
     XWikiDocument getFromDataSpace(String id) throws XWikiException;
 
-    XWikiDocument getFamilyDoc(XWikiDocument patient) throws XWikiException;
+    XWikiDocument getFamilyDoc(XWikiDocument anchorDoc) throws XWikiException;
 
     XWikiDocument getFamilyOfPatient(String patientId) throws XWikiException;
 

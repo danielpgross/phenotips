@@ -61,8 +61,12 @@ public class FamilyScriptService implements ScriptService
     public DocumentReference createFamily(String patientId)
     {
         try {
-            XWikiDocument doc = utils.createFamilyDoc(patientId);
-            return doc != null ? doc.getDocumentReference() : null;
+            XWikiDocument familyDoc;
+            familyDoc = utils.getFamilyOfPatient(patientId);
+            if (familyDoc == null) {
+                familyDoc = utils.createFamilyDoc(patientId);
+            }
+            return familyDoc != null ? familyDoc.getDocumentReference() : null;
         } catch (Exception ex) {
             logger.error("Could not create a new family document {}", ex.getMessage());
         }
@@ -105,8 +109,17 @@ public class FamilyScriptService implements ScriptService
     public JSON verifyLinkable(String thisId, String otherId)
     {
         StatusResponse response = new StatusResponse();
+        boolean hasOtherFamily;
         try {
-            if (validation.hasOtherFamily(otherId)) {
+            hasOtherFamily = validation.hasOtherFamily(thisId, otherId);
+        } catch (Exception ex) {
+            response.statusCode = 400;
+            response.errorType = "invalidId";
+            response.message = "Most likely the link id is invalid";
+            return response.asVerification();
+        }
+        try {
+            if (hasOtherFamily) {
                 response.statusCode = 501;
                 response.errorType = "familyConflict";
                 response.message = String.format("Patient %s belongs to a different family.", otherId);
@@ -131,7 +144,7 @@ public class FamilyScriptService implements ScriptService
     private static JSON familyStatusResponse(boolean isFamily, boolean hasFamily) {
         JSONObject json = new JSONObject();
         json.put("isFamilyPage", isFamily);
-        json.put("hasOtherFamily", hasFamily);
+        json.put("hasFamily", hasFamily);
         return json;
     }
 }
