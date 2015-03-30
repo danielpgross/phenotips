@@ -9,14 +9,18 @@ import org.phenotips.studies.family.Validation;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.DocumentReferenceResolver;
+import org.xwiki.query.QueryException;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Provider;
+import javax.naming.NamingException;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -52,8 +56,8 @@ public class ProcessingImpl implements Processing
     @Inject
     private Validation validation;
 
-    // fixme make it throw exceptions
-    public StatusResponse processPatientPedigree(String anchorId, JSONObject json, String image) throws XWikiException
+    public StatusResponse processPatientPedigree(String anchorId, JSONObject json, String image)
+        throws XWikiException, NamingException, QueryException
     {
         StatusResponse response = new StatusResponse();
         DocumentReference anchorRef = referenceResolver.resolve(anchorId, Patient.DEFAULT_DATA_SPACE);
@@ -63,37 +67,48 @@ public class ProcessingImpl implements Processing
         if (anchorDoc == null) {  // fixme must check for all conditions as in verify linkable
             response.statusCode = 404;
             response.errorType = "invalidId";
-            response.message = String.format("The family/patient %s is invalid", anchorId);
+            response.message = String.format("The family/patient id %s is invalid", anchorId);
             return response;
         }
 
+        boolean isNew = false;
+        List<String> members = new LinkedList<>();
+        List<String> updatedMembers = this.extractIdsFromPedigree(json);
+        // sometimes pedigree passes in family document name as a member
         if (familyDoc != null) {
-            List<String> members = familyUtils.getFamilyMembers(familyDoc);
-            List<String> updatedMembers = this.extractIdsFromPedigree(json);
-
+            updatedMembers.remove(familyDoc.getDocumentReference().getName());
+        }
+        updatedMembers = Collections.unmodifiableList(updatedMembers);
+        if (updatedMembers.size() < 1) {
+            // the list of members should not be empty.
+            response.statusCode = 412;
+            response.errorType = "invalidUpdate";
+            response.message = "The family has no members. Please specify at least one patient link.";
+            return response;
+        } else if (familyDoc == null && updatedMembers.size() > 1) {
+            familyDoc = familyUtils.createFamilyDoc(false);
+            this.setUnionOfUserPermissions(familyDoc, updatedMembers);
+            isNew = true;
+        } else if (familyDoc != null) {
+            members = familyUtils.getFamilyMembers(familyDoc);
             StatusResponse duplicationStatus = this.checkForDuplicates(updatedMembers);
             if (duplicationStatus.statusCode != 200) {
                 return duplicationStatus;
             }
-            // sometimes pedigree passes in family document name as a member
-            updatedMembers.remove(familyDoc.getDocumentReference().getName());
             members = Collections.unmodifiableList(members);
-            updatedMembers = Collections.unmodifiableList(updatedMembers);
+        }
 
+        if (familyDoc != null) {
             // storing first, because pedigree depends on this.
             StatusResponse storingResponse = this.storeFamilyRepresentation(familyDoc, updatedMembers, json, image);
             if (storingResponse.statusCode != 200) {
                 return storingResponse;
             }
-            if (updatedMembers.size() < 1) {
-                // the list of members should not be empty.
-                response.statusCode = 412;
-                response.errorType = "invalidUpdate";
-                response.message = "The family has no members. Please specify at least one patient link.";
-                return response;
-            }
 
-            this.removeMembersNotPresent(members, updatedMembers);
+            if (!isNew) {
+                this.setUnionOfUserPermissions(familyDoc, updatedMembers);
+                this.removeMembersNotPresent(members, updatedMembers);
+            }
             this.addNewMembers(members, updatedMembers, familyDoc);
             // remove and add do not take care of modifying the 'members' property
             familyUtils.setFamilyMembers(familyDoc, updatedMembers);
@@ -108,6 +123,27 @@ public class ProcessingImpl implements Processing
 
         response.statusCode = 200;
         return response;
+    }
+
+    /** Does not save the family document. */
+    private void setUnionOfUserPermissions(XWikiDocument familyDocument, List<String> patientIds) throws XWikiException {
+        XWikiContext context = provider.get();
+        BaseObject rightsObject = familyDocument.getXObject(FamilyUtils.RIGHTS_CLASS);
+        Set<String> permissionsUnion = new HashSet<>();
+        for (String patientId : patientIds) {
+            DocumentReference patientRef = patientRepository.getPatientById(patientId).getDocument();
+            XWikiDocument patientDoc = familyUtils.getDoc(patientRef);
+            permissionsUnion.addAll(familyUtils.getAllWithEditAccess(patientDoc));
+        }
+        String rightsString = "";
+        for (String user : permissionsUnion) {
+            if (StringUtils.isNotBlank(user)) {
+                rightsString += user + ",";
+            }
+        }
+        rightsObject.set("users", rightsString, context);
+        rightsObject.set("levels", "view,edit", context);
+        rightsObject.set("allow", 1, context);
     }
 
     private StatusResponse checkForDuplicates(List<String> updatedMembers)
@@ -146,12 +182,10 @@ public class ProcessingImpl implements Processing
             XWikiDocument patientDoc = wiki.getDocument(patientRepository.getPatientById(member).getDocument(), context);
             this.storePedigree(patientDoc, familyContents, image, context, wiki);
         }
-        // todo for now forgo family access check, because of inability to modify those permissions.
-        // StatusResponse familyResponse = validation.checkFamilyAccessWithResponse(family);
-        this.storePedigree(family, familyContents, image, context, wiki);
-
-        StatusResponse familyResponse = new StatusResponse();
-        familyResponse.statusCode = 200;
+        StatusResponse familyResponse = validation.checkFamilyAccessWithResponse(family);
+        if (familyResponse.statusCode == 200) {
+            this.storePedigree(family, familyContents, image, context, wiki);
+        }
         return familyResponse;
     }
 

@@ -20,6 +20,4 @@ public interface Validation
     StatusResponse createInsufficientPermissionsResponse(String patientId);
 
     boolean hasPatientEditAccess(XWikiDocument patientDoc);
-
-    boolean hasOtherFamily(String thisId, String otherId) throws XWikiException;
 }

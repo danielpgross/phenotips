@@ -12,6 +12,7 @@ import org.phenotips.studies.family.Validation;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.DocumentReferenceResolver;
+import org.xwiki.model.reference.EntityReference;
 import org.xwiki.security.authorization.Right;
 import org.xwiki.users.User;
 import org.xwiki.users.UserManager;
@@ -74,10 +75,7 @@ public class ValidationImpl implements Validation
         StatusResponse response = new StatusResponse();
 
         if (familyDoc == null) {
-            response.statusCode = 404;
-            response.errorType = "noFamily";
-            // Anchor = proband for better understanding by users
-            response.message = "Cannot link patients. Proband node does not belong to a family.";
+            response.statusCode = 200;
             return response;
         }
 
@@ -89,25 +87,36 @@ public class ValidationImpl implements Validation
             response.message = String.format("Could not find patient %s.", patientId);
             return response;
         }
-        boolean hasPatientAccess = this.hasPatientEditAccess(patientDoc);
-        if (hasPatientAccess) {
-            if (familyUtils.getPedigree(patientDoc).isEmpty() || this.isInFamily(familyDoc, patientId)) {
-                // todo for now forgo family access check, because of inability to modify those permissions.
-                // return this.checkFamilyAccessWithResponse(familyDoc);
-                StatusResponse familyResponse = new StatusResponse();
-                familyResponse.statusCode = 200;
-                return familyResponse;
-            } else {
+
+        EntityReference patientFamilyRef = familyUtils.getFamilyReference(patientDoc);
+        if (patientFamilyRef != null) {
+            boolean hasOtherFamily = familyDoc.getDocumentReference().compareTo(patientFamilyRef) != 0;
+            if (hasOtherFamily) {
                 response.statusCode = 501;
-                response.errorType = "existingPedigree";
-                response.message =
-                    String.format("Patient %s has an existing pedigree.", patientId);
+                response.errorType = "familyConflict";
+                response.message = String.format("Patient %s belongs to a different family.", patientId);
                 return response;
             }
         }
-        return this.createInsufficientPermissionsResponse(patientId);
+
+        boolean isInFamily = this.isInFamily(familyDoc, patientId);
+        if (familyUtils.getPedigree(patientDoc).isEmpty() || isInFamily) {
+            if (!isInFamily) {
+                return this.checkFamilyAccessWithResponse(familyDoc);
+            }
+            StatusResponse familyResponse = new StatusResponse();
+            familyResponse.statusCode = 200;
+            return familyResponse;
+        } else {
+            response.statusCode = 501;
+            response.errorType = "existingPedigree";
+            response.message =
+                String.format("Patient %s has an existing pedigree.", patientId);
+            return response;
+        }
     }
 
+    /** Should not be used when saving families. */
     public boolean hasPatientEditAccess(XWikiDocument patientDoc) {
         User currentUser = userManager.getCurrentUser();
         PatientAccess patientAccess = permissionsManager.getPatientAccess(new PhenoTipsPatient(patientDoc));
@@ -134,16 +143,5 @@ public class ValidationImpl implements Validation
         response.errorType = "permissions";
         response.message = "Insufficient permissions to edit the family record.";
         return response;
-    }
-
-    public boolean hasOtherFamily(String thisId, String otherId) throws XWikiException
-    {
-        XWikiDocument familyDoc = familyUtils.getFamilyOfPatient(otherId);
-        if (familyDoc != null) {
-            XWikiDocument thisDoc = familyUtils.getFromDataSpace(thisId);
-            return familyDoc.getDocumentReference() != familyUtils.getFamilyDoc(thisDoc).getDocumentReference();
-        } else {
-            return false;
-        }
     }
 }

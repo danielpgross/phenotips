@@ -22,11 +22,12 @@ package org.phenotips.studies.family.script;
 import org.phenotips.studies.family.FamilyUtils;
 import org.phenotips.studies.family.Processing;
 import org.phenotips.studies.family.Validation;
-import org.phenotips.studies.family.internal.StatusResponse;
 
 import org.xwiki.component.annotation.Component;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.script.service.ScriptService;
+
+import java.util.List;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -38,6 +39,7 @@ import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.doc.XWikiDocument;
 
 import net.sf.json.JSON;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 @Component
@@ -92,11 +94,7 @@ public class FamilyScriptService implements ScriptService
         try {
             XWikiDocument doc = utils.getFromDataSpace(id);
             XWikiDocument familyDoc = utils.getFamilyDoc(doc);
-            boolean hasFamily = familyDoc != null;
-            if (hasFamily) {
-                isFamily = familyDoc.getDocumentReference() == doc.getDocumentReference();
-            }
-            return familyStatusResponse(isFamily, hasFamily);
+            return familyStatusResponse(familyDoc, utils.getFamilyMembers(familyDoc));
         } catch (XWikiException ex) {
             logger.error("Could not get patient's family {}", ex.getMessage());
             return new JSONObject();
@@ -108,25 +106,8 @@ public class FamilyScriptService implements ScriptService
      */
     public JSON verifyLinkable(String thisId, String otherId)
     {
-        StatusResponse response = new StatusResponse();
-        boolean hasOtherFamily;
         try {
-            hasOtherFamily = validation.hasOtherFamily(thisId, otherId);
-        } catch (Exception ex) {
-            response.statusCode = 400;
-            response.errorType = "invalidId";
-            response.message = "Most likely the link id is invalid";
-            return response.asVerification();
-        }
-        try {
-            if (hasOtherFamily) {
-                response.statusCode = 501;
-                response.errorType = "familyConflict";
-                response.message = String.format("Patient %s belongs to a different family.", otherId);
-                return response.asVerification();
-            } else {
-                return validation.canAddToFamily(thisId, otherId).asVerification();
-            }
+            return validation.canAddToFamily(thisId, otherId).asVerification();
         } catch (XWikiException ex) {
             return new JSONObject();
         }
@@ -141,10 +122,21 @@ public class FamilyScriptService implements ScriptService
         }
     }
 
-    private static JSON familyStatusResponse(boolean isFamily, boolean hasFamily) {
+    private static JSON familyStatusResponse(XWikiDocument family, List<String> members)
+    {
         JSONObject json = new JSONObject();
-        json.put("isFamilyPage", isFamily);
-        json.put("hasFamily", hasFamily);
+        json.put("familyPage", family == null ? null : family.getDocumentReference().getName());
+
+        JSONArray membersJson = new JSONArray();
+        for (String member : members) {
+            JSONObject memberJson = new JSONObject();
+            memberJson.put("id", member);
+            memberJson.put("identifier", "");
+            memberJson.put("name", "");
+            membersJson.add(memberJson);
+        }
+
+        json.put("familyMembers", membersJson);
         return json;
     }
 }
