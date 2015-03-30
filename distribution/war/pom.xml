@@ -712,7 +712,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>family-studies-ap</artifactId>
+      <artifactId>family-studies-api</artifactId>
       <version>${project.version}</version>
     </dependency>
   </dependencies>
