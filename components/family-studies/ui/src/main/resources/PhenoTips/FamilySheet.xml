@@ -60,7 +60,7 @@
       #end
     &lt;/div&gt;
   &lt;/div&gt;
-  #if ($context.action != 'view' || !$doc.getObject('PhenoTips.FamilyClass').getProperty('reports').getValue().isEmpty())
+  #if ($xcontext.action != 'view' || !$doc.getObject('PhenoTips.FamilyClass').getProperty('reports').getValue().isEmpty())
     &lt;div id='reports' class='chapter clinical-info'&gt;
       == Reports ==
       &lt;div class='fieldset'&gt;

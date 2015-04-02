@@ -45,7 +45,7 @@
       &lt;form&gt;
   	{{warning}}
             * The pedigree is shared by all members of this family.
-            * Patient records may have collaborators. Adding an existing patient to this family will grant all collaborators from that patient access to all family members’ records.
+            * Patient records may have collaborators. Adding an existing patient to this family will grant all collaborators from that patient access to all family members' records. Also, all collaborators will be able to edit that patient's record.
         {{/warning}}
      	&lt;p class="buttonwrapper" style="text-align:center;"&gt;
      	  &lt;input type="submit" class="button" value="Confirm"&gt;
