@@ -74,11 +74,6 @@ public class ValidationImpl implements Validation
     {
         StatusResponse response = new StatusResponse();
 
-        if (familyDoc == null) {
-            response.statusCode = 200;
-            return response;
-        }
-
         DocumentReference patientRef = referenceResolver.resolve(patientId, Patient.DEFAULT_DATA_SPACE);
         XWikiDocument patientDoc = familyUtils.getDoc(patientRef);
         if (patientDoc == null) {
@@ -90,7 +85,8 @@ public class ValidationImpl implements Validation
 
         EntityReference patientFamilyRef = familyUtils.getFamilyReference(patientDoc);
         if (patientFamilyRef != null) {
-            boolean hasOtherFamily = familyDoc.getDocumentReference().compareTo(patientFamilyRef) != 0;
+            boolean hasOtherFamily;
+            hasOtherFamily = familyDoc == null || patientFamilyRef.compareTo(familyDoc.getDocumentReference()) != 0;
             if (hasOtherFamily) {
                 response.statusCode = 501;
                 response.errorType = "familyConflict";
@@ -99,9 +95,12 @@ public class ValidationImpl implements Validation
             }
         }
 
-        boolean isInFamily = this.isInFamily(familyDoc, patientId);
+        boolean isInFamily = false;
+        if (familyDoc != null) {
+            isInFamily = this.isInFamily(familyDoc, patientId);
+        }
         if (familyUtils.getPedigree(patientDoc).isEmpty() || isInFamily) {
-            if (!isInFamily) {
+            if (!isInFamily && familyDoc != null) {
                 return this.checkFamilyAccessWithResponse(familyDoc);
             }
             StatusResponse familyResponse = new StatusResponse();
