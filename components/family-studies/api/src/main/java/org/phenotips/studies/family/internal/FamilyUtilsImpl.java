@@ -32,6 +32,7 @@ import org.xwiki.query.Query;
 import org.xwiki.query.QueryException;
 import org.xwiki.query.QueryManager;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -203,7 +204,9 @@ public class FamilyUtilsImpl implements FamilyUtils
         BaseObject familyObject = newFamilyDoc.getXObject(FAMILY_CLASS);
 
         BaseObject permissions = newFamilyDoc.getXObject(RIGHTS_CLASS);
-        permissions.set("users", getAllWithEditAccessAsString(patientDoc), context);
+        String[] fullRights = this.getEntitiesWithEditAccessAsString(patientDoc);
+        permissions.set("users", fullRights[0], context);
+        permissions.set("groups", fullRights[1], context);
         permissions.set("levels", "view,edit", context);
         permissions.set("allow", 1, context);
 
@@ -247,25 +250,41 @@ public class FamilyUtilsImpl implements FamilyUtils
         return newFamilyDoc;
     }
 
-    private String getAllWithEditAccessAsString(XWikiDocument patientDoc) {
-        String userString = "";
-        for (String user : this.getAllWithEditAccess(patientDoc)) {
-            userString += user + ",";
+    /** users, groups */
+    private String[] getEntitiesWithEditAccessAsString(XWikiDocument patientDoc)
+    {
+        String[] fullRights = new String[2];
+        int i = 0;
+        for (Set<String> category : this.getEntitiesWithEditAccess(patientDoc)) {
+            String categoryString = "";
+            for (String user : category) {
+                categoryString += user + ",";
+            }
+            fullRights[i] = categoryString;
+            i++;
         }
-        return userString;
+        return fullRights;
     }
-    public Set<String> getAllWithEditAccess(XWikiDocument patientDoc)
+
+    /** users, groups */
+    public List<Set<String>> getEntitiesWithEditAccess(XWikiDocument patientDoc)
     {
         Collection<BaseObject> rightsObjects = patientDoc.getXObjects(RIGHTS_CLASS);
         Set<String> users = new HashSet<>();
+        Set<String> groups = new HashSet<>();
         for (BaseObject rights : rightsObjects) {
             String[] levels = ((StringProperty) rights.getField("levels")).getValue().split(",");
             if (Arrays.asList(levels).contains("edit")) {
-                String[] patientAccess = ((LargeStringProperty) rights.getField("users")).getValue().split(",");
-                users.addAll(Arrays.asList(patientAccess));
+                String[] usersAccess = ((LargeStringProperty) rights.getField("users")).getValue().split(",");
+                String[] groupsAccess = ((LargeStringProperty) rights.getField("groups")).getValue().split(",");
+                users.addAll(Arrays.asList(usersAccess));
+                groups.addAll(Arrays.asList(groupsAccess));
             }
         }
-        return users;
+        ArrayList<Set<String>> fullRights = new ArrayList<>();
+        fullRights.add(users);
+        fullRights.add(groups);
+        return fullRights;
     }
 
     public void setFamilyReference(XWikiDocument patientDoc, XWikiDocument familyDoc, XWikiContext context)

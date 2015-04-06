@@ -129,21 +129,29 @@ public class ProcessingImpl implements Processing
     private void setUnionOfUserPermissions(XWikiDocument familyDocument, List<String> patientIds) throws XWikiException {
         XWikiContext context = provider.get();
         BaseObject rightsObject = familyDocument.getXObject(FamilyUtils.RIGHTS_CLASS);
-        Set<String> permissionsUnion = new HashSet<>();
+        Set<String> usersUnion = new HashSet<>();
+        Set<String> groupsUnion = new HashSet<>();
         for (String patientId : patientIds) {
             DocumentReference patientRef = patientRepository.getPatientById(patientId).getDocument();
             XWikiDocument patientDoc = familyUtils.getDoc(patientRef);
-            permissionsUnion.addAll(familyUtils.getAllWithEditAccess(patientDoc));
+            List<Set<String>> patientRights = familyUtils.getEntitiesWithEditAccess(patientDoc);
+            usersUnion.addAll(patientRights.get(0));
+            groupsUnion.addAll(patientRights.get(1));
         }
-        String rightsString = "";
-        for (String user : permissionsUnion) {
-            if (StringUtils.isNotBlank(user)) {
-                rightsString += user + ",";
-            }
-        }
-        rightsObject.set("users", rightsString, context);
+        rightsObject.set("users", setToString(usersUnion), context);
+        rightsObject.set("groups", setToString(groupsUnion), context);
         rightsObject.set("levels", "view,edit", context);
         rightsObject.set("allow", 1, context);
+    }
+
+    private String setToString(Set<String> set) {
+        String finalString = "";
+        for (String item : set) {
+            if (StringUtils.isNotBlank(item)) {
+                finalString += item + ",";
+            }
+        }
+        return finalString;
     }
 
     private StatusResponse checkForDuplicates(List<String> updatedMembers)

@@ -26,6 +26,7 @@ import org.xwiki.model.EntityType;
 import org.xwiki.model.reference.EntityReference;
 import org.xwiki.query.QueryException;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -42,16 +43,16 @@ import net.sf.json.JSONObject;
 @Role
 public interface FamilyUtils
 {
-    final EntityReference FAMILY_CLASS =
+    EntityReference FAMILY_CLASS =
         new EntityReference("FamilyClass", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
 
-    final static EntityReference PEDIGREE_CLASS =
+    EntityReference PEDIGREE_CLASS =
         new EntityReference("PedigreeClass", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
 
-    final EntityReference FAMILY_REFERENCE =
+    EntityReference FAMILY_REFERENCE =
         new EntityReference("FamilyReference", EntityType.DOCUMENT, Constants.CODE_SPACE_REFERENCE);
 
-    final EntityReference RIGHTS_CLASS =
+    EntityReference RIGHTS_CLASS =
         new EntityReference("XWikiRights", EntityType.DOCUMENT, new EntityReference("XWiki", EntityType.SPACE));
 
     XWikiDocument getDoc(EntityReference docRef) throws XWikiException;
@@ -83,5 +84,5 @@ public interface FamilyUtils
 
     void setFamilyMembers(XWikiDocument familyDoc, List<String> members) throws XWikiException;
 
-    Set<String> getAllWithEditAccess(XWikiDocument patientDoc);
+    List<Set<String>> getEntitiesWithEditAccess(XWikiDocument patientDoc);
 }
