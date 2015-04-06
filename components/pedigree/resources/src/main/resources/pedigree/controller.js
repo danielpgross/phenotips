@@ -921,7 +921,7 @@ Controller._checkPatientLinkValidity = function(callbackOnValid, nodeID, linkID)
                     }
 
                     // check if there is a family. If there is no family show a warning that a family will be created
-                    if (!editor.hasFamily()) {
+                    if (!editor.hasFamily() && allLinkedNodes.linkedPatients.length < 2) {
                         processLinking("Connecting this patient requires creating a family. " +
                                        "Do you want to create a family and add patient " + linkID + "?",
                                        "1) All members of a family share the same pedigree.<br><br>"+
