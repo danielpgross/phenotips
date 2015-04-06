@@ -14,7 +14,7 @@ var FamilyDataLoader = Class.create( {
 
     load: function(callWhenReady) {
         var probandID = editor.getGraph().getCurrentPatientId();
-        var familyJsonURL = editor.getExternalEndpoint().getFamilyInterfaceURL();
+        var familyJsonURL = editor.getExternalEndpoint().getFamilyInfoURL();
         new Ajax.Request(familyJsonURL, {
             method: "POST",
             onSuccess: this._onFamilyDataReady.bind(this),
@@ -64,7 +64,6 @@ var PatientDataLoader = Class.create( {
             method: "GET",
             onSuccess: this._onPatientDataReady.bind(this),
             onComplete: dataProcessorWhenReady ? function() {
-                console.log("Complete: " + stringifyObject(_this._patientData));
                 dataProcessorWhenReady(_this._patientData)
             } : {}
         });
