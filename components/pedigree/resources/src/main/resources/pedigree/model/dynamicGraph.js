@@ -2,12 +2,9 @@
 
 DynamicPositionedGraph = function( drawGraph )
 {
-    this._currentPatientId = XWiki.currentDocument.page;
-
     this.DG = drawGraph;
 
-    // TODO: auto-find fo rnow; may specify manually a node different from current patient later
-    this._probandId = this.findProbandId();
+    this._probandId = 0;  // proband may be defined in JSON, and will be set when initialized form JSON; otherwise assume 0
 
     this._heuristics = new Heuristics( drawGraph );  // heuristics & helper methods separated into a separate class
 
@@ -34,11 +31,6 @@ DynamicPositionedGraph.prototype = {
       return true;
     },
 
-    getCurrentPatientId: function()
-    {
-        return this._currentPatientId;
-    },
-
     setProbandId: function(id)
     {
         this._probandId = id;
@@ -47,29 +39,6 @@ DynamicPositionedGraph.prototype = {
     getProbandId: function()
     {
         return this._probandId;
-    },
-
-    findProbandId: function()
-    {
-        if (editor.isFamilyPage()) {
-            return -1; // no proband
-        }
-
-        // default to node with ID 0
-        var probandId = 0;
-
-        // look through all person nodes for a node linked to the current patient
-        for (var i = 0 ; i <= this.getMaxNodeId(); i++) {
-            if (this.isPerson(i)) {
-                if (this.getProperties(i).hasOwnProperty("phenotipsId")) {
-                    if (this.getProperties(i).phenotipsId == this.getCurrentPatientId()) {
-                        probandId = i;
-                        break;
-                    }
-                }
-            }
-        }
-        return probandId;
     },
 
     getAllPatientLinks: function()
@@ -85,6 +54,20 @@ DynamicPositionedGraph.prototype = {
             }
         }
         return linkedPatientsList;
+    },
+
+    getCurrentPatientId: function()
+    {
+        return XWiki.currentDocument.page;
+    },
+
+    getCurrentPatientNodeID: function()
+    {
+        var allLinkedNodes = this.getAllPatientLinks();
+        if (!allLinkedNodes.patientToNodeMapping.hasOwnProperty(this.getCurrentPatientId())) {
+            return null;
+        }
+        return allLinkedNodes.patientToNodeMapping[this.getCurrentPatientId()];
     },
 
     getMaxNodeId: function()
@@ -481,7 +464,7 @@ DynamicPositionedGraph.prototype = {
     // returns true iff node v is either a sibling, a child or a parent of proband node
     isRelatedToProband: function( v )
     {
-        if (editor.isFamilyPage()) {
+        if (this.getProbandId() < 0) {
             return false;
         }
 
@@ -741,7 +724,7 @@ DynamicPositionedGraph.prototype = {
 
         var queue = new Queue();
 
-        if (!editor.isFamilyPage()) {
+        if (this.getProbandId() >= 0) {
             // proband is the node which is guaranteed to stay,
             // so need to find all nodes no longer connected to it - that is the set of nodes ot be removed
             queue.push( this.getProbandId() );
@@ -1462,27 +1445,37 @@ DynamicPositionedGraph.prototype = {
         return {"moved": movedNodes};
     },
 
-    clearAll: function()
+    clearAll: function(isFamilyPage)
     {
-        var removedNodes = this._getAllNodes(1);  // all nodes from 1 and up
+        var removedNodes = this._getAllNodes();
 
         var emptyGraph = (this.DG.GG.getNumVertices() == 0);
-                
-        var node0properties = emptyGraph ? {} : this.getProperties(0);
+
+        if (isFamilyPage) {
+            // keep the proband, if any
+            var remainingNodeProperties = (emptyGraph || (this.getProbandId() >= 0)) ? {} : this.getProperties(this.getProbandId());
+            var probandID = 0;
+        } else {
+            // keep the node linked to the current patient; if it was not the proband will have no proband
+
+            var currentNodeId = this.getCurrentPatientNodeID();
+
+            var remainingNodeProperties = (emptyGraph || (currentNodeId == null)) ? {} : this.getProperties(currentNodeId);
+        }
 
         // it is easier to create abrand new graph transferirng node 0 propertie sthna to remove on-by-one
         // each time updating ranks, orders, etc
 
         var baseGraph = PedigreeImport.initFromPhenotipsInternal(this._onlyProbandGraph);
 
-        this._recreateUsingBaseGraph(baseGraph);
+        this._recreateUsingBaseGraph(baseGraph, 0 /* mark the only remaining node as proband */);
 
-        this.setProperties(0, node0properties);
+        this.setProperties(0, remainingNodeProperties);
 
         if (emptyGraph)
             return {"new": [0], "makevisible": [0]};
             
-        return {"removed": removedNodes, "moved": [0], "makevisible": [0]};
+        return {"removed": removedNodes, "new": [0], "makevisible": [0]};
     },
 
     redrawAll: function (removedBeforeRedrawList, animateList, newList, ranksBefore)
@@ -1490,6 +1483,8 @@ DynamicPositionedGraph.prototype = {
         var ranksBefore = ranksBefore ? ranksBefore : this.DG.ranks.slice(0);  // sometimes we want to use ranksbefore as they were before some stuff was added to the graph before a redraw
 
         this._debugPrintAll("before");
+
+        // NOTE: proband node will stay the same
 
         var baseGraph = this.DG.GG.makeGWithCollapsedMultiRankEdges();
 
@@ -1501,7 +1496,7 @@ DynamicPositionedGraph.prototype = {
                 oldRanks.splice(i, 1);
         }
 
-        if (!this._recreateUsingBaseGraph(baseGraph, oldRanks)) return {};  // no changes
+        if (!this._recreateUsingBaseGraph(baseGraph, this.getProbandId(), oldRanks)) return {};  // no changes
 
         var movedNodes = this._getAllNodes();
 
@@ -1578,9 +1573,11 @@ DynamicPositionedGraph.prototype = {
         // note: when saving positioned graph, need to save the version of the graph which has virtual edge pieces
         output["GG"] = this.DG.GG.serialize();
 
-        output["ranks"]     = this.DG.ranks;
-        output["order"]     = this.DG.order.serialize();
-        output["positions"] = this.DG.positions;
+        output["ranks"]         = this.DG.ranks;
+        output["order"]         = this.DG.order.serialize();
+        output["positions"]     = this.DG.positions;
+        output["probandNodeID"] = this.getProbandId();
+        output["JSON_version"]  = editor.getInternalJSONVersion();
 
         // note: everything else can be recomputed based on the information above
 
@@ -1592,6 +1589,11 @@ DynamicPositionedGraph.prototype = {
 
     fromJSONObject: function (jsonData)
     {
+        if (!jsonData.hasOwnProperty("JSON_version") || jsonData["JSON_version"] != editor.getInternalJSONVersion()) {
+            alert("Can not initialize from a JSON: unsupported version of pedigree JSON format");
+            return {};
+        }
+
         var removedNodes = this._getAllNodes();
 
         //console.log("Got serialization object: " + stringifyObject(jsonData));
@@ -1612,7 +1614,7 @@ DynamicPositionedGraph.prototype = {
 
         var newNodes = this._getAllNodes();
 
-        this._probandId = this.findProbandId();
+        this._probandId = jsonData.hasOwnProperty("probandNodeID") ? jsonData["probandNodeID"] : -1;
 
         return {"new": newNodes, "removed": removedNodes};
     },
@@ -1623,21 +1625,28 @@ DynamicPositionedGraph.prototype = {
 
         //this._debugPrintAll("before");
 
+        var importData = null;
+
         if (importType == "ped") {
-            var baseGraph = PedigreeImport.initFromPED(importString, importOptions.acceptUnknownPhenotypes, importOptions.markEvaluated, importOptions.externalIdMark);
-            if (!this._recreateUsingBaseGraph(baseGraph)) return null;  // no changes
+            importData = PedigreeImport.initFromPED(importString, importOptions.acceptUnknownPhenotypes, importOptions.markEvaluated, importOptions.externalIdMark);
         } else if (importType == "BOADICEA") {
-            var baseGraph = PedigreeImport.initFromBOADICEA(importString, importOptions.externalIdMark);
-            if (!this._recreateUsingBaseGraph(baseGraph)) return null;  // no changes
+            importData = PedigreeImport.initFromBOADICEA(importString, importOptions.externalIdMark);
         } else if (importType == "gedcom") {
-            var baseGraph = PedigreeImport.initFromGEDCOM(importString, importOptions.markEvaluated, importOptions.externalIdMark);
-            if (!this._recreateUsingBaseGraph(baseGraph)) return null;  // no changes
+            importData = PedigreeImport.initFromGEDCOM(importString, importOptions.markEvaluated, importOptions.externalIdMark);
         } else if (importType == "simpleJSON") {
-            var baseGraph = PedigreeImport.initFromSimpleJSON(importString);
-            if (!this._recreateUsingBaseGraph(baseGraph)) return null;  // no changes            
+            importData = PedigreeImport.initFromSimpleJSON(importString);
         }  else if (importType == "phenotipsJSON") {
-            
             // TODO
+        }
+
+        if (importData == null
+            || !importData.hasOwnProperty("baseGraph")
+            || !importData.hasOwnProperty("probandNodeID")) {
+            return null;  // no changes
+        }
+
+        if (!this._recreateUsingBaseGraph(importData.baseGraph, importData.probandNodeID)) {
+            return null;  // no changes
         }
 
         //this._debugPrintAll("after");
@@ -1658,7 +1667,7 @@ DynamicPositionedGraph.prototype = {
 
     // suggestedRanks: when provided, attempt to use the suggested rank for all nodes,
     //                 in order to keep the new layout as close as possible to the previous layout
-    _recreateUsingBaseGraph: function (baseGraph, suggestedRanks)
+    _recreateUsingBaseGraph: function (baseGraph, probandNodeID, suggestedRanks)
     {
         try {
             var newDG = new PositionedGraph( baseGraph,
@@ -1676,7 +1685,7 @@ DynamicPositionedGraph.prototype = {
         this.DG          = newDG;
         this._heuristics = new Heuristics( this.DG );
 
-        this._probandId = this.findProbandId();
+        this._probandId = probandNodeID;
 
         //this._debugPrintAll("before improvement");
         this._heuristics.improvePositioning();
