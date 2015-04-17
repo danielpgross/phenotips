@@ -31,7 +31,6 @@ import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.BaseObject;
 
 import net.sf.json.JSON;
-import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 /**
@@ -40,8 +39,6 @@ import net.sf.json.JSONObject;
 @Component
 public class ProcessingImpl implements Processing
 {
-    private final static String PATIENT_LINK_JSON_KEY = "phenotipsId";
-
     @Inject
     private PatientRepository patientRepository;
 
@@ -75,7 +72,7 @@ public class ProcessingImpl implements Processing
 
         boolean isNew = false;
         List<String> members = new LinkedList<>();
-        List<String> updatedMembers = this.extractIdsFromPedigree(json);
+        List<String> updatedMembers = PedigreeUtils.extractIdsFromPedigree(json);
         // sometimes pedigree passes in family document name as a member
         if (familyDoc != null) {
             updatedMembers.remove(familyDoc.getDocumentReference().getName());
@@ -231,38 +228,6 @@ public class ProcessingImpl implements Processing
     }
 
     /**
-     * @return all PhenoTips ids from pedigree nodes that have internal ids
-     */
-    private List<String> extractIdsFromPedigree(JSONObject pedigree)
-    {
-        List<String> extractedIds = new LinkedList<>();
-        for (JSONObject properties : this.extractPatientJSONPropertiesFromPedigree(pedigree)) {
-            Object id = properties.get(PATIENT_LINK_JSON_KEY);
-            if (id != null && StringUtils.isNotBlank(id.toString())) {
-                extractedIds.add(id.toString());
-            }
-        }
-        return extractedIds;
-    }
-
-    /** @return non-null and non-empty patient properties JSON objects. */
-    private List<JSONObject> extractPatientJSONPropertiesFromPedigree(JSONObject pedigree)
-    {
-        List<JSONObject> extractedObjects = new LinkedList<>();
-        JSONArray gg = (JSONArray) pedigree.get("GG");
-        // letting it throw a null exception on purpose
-        for (Object nodeObj : gg) {
-            JSONObject node = (JSONObject) nodeObj;
-            JSONObject properties = (JSONObject) node.get("prop");
-            if (properties == null || properties.isEmpty()) {
-                continue;
-            }
-            extractedObjects.add(properties);
-        }
-        return extractedObjects;
-    }
-
-    /**
      * Removes records from the family that are no longer in the updated family structure.
      */
     private void removeMembersNotPresent(List<String> currentMembers, List<String> updatedMembers) throws XWikiException
@@ -293,7 +258,7 @@ public class ProcessingImpl implements Processing
     private JSONObject stripIdsFromPedigree(XWikiDocument patientDoc)
     {
         JSONObject pedigree = familyUtils.getPedigree(patientDoc);
-        List<JSONObject> patientProperties = this.extractPatientJSONPropertiesFromPedigree(pedigree);
+        List<JSONObject> patientProperties = PedigreeUtils.extractPatientJSONPropertiesFromPedigree(pedigree);
         String patientId = patientDoc.getDocumentReference().getName();
         for (JSONObject properties : patientProperties) {
             if (properties.get(PATIENT_LINK_JSON_KEY) != null && !StringUtils

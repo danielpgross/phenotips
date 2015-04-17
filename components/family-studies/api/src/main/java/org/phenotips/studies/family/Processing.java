@@ -16,4 +16,6 @@ public interface Processing
 {
     public StatusResponse processPatientPedigree(String patientId, JSONObject json, String image)
         throws XWikiException, NamingException, QueryException;
+
+    final static String PATIENT_LINK_JSON_KEY = "phenotipsId";
 }
