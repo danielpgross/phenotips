@@ -114,6 +114,14 @@ public class JsonAdapterImpl implements JsonAdapter
         return internalPatient;
     }
 
+    private static JSONObject putIfNotNull(JSONObject json, String name, Object value)
+    {
+        if (value != null) {
+            json.put(name, value);
+        }
+        return json;
+    }
+
     private static JSONObject exchangeIds(JSONObject ex, JSONObject inter)
     {
         inter.put("id", ex.get("phenotipsId"));
@@ -137,10 +145,14 @@ public class JsonAdapterImpl implements JsonAdapter
         String dob = "dob";
         String dod = "dod";
         if (ex.containsKey(dob)) {
-            inter.put("date_of_birth", JsonAdapterImpl.pedigreeDateToDate(ex.getJSONObject(dob)));
+            inter.put("date_of_birth", format.format(
+                JsonAdapterImpl.pedigreeDateToDate(ex.getJSONObject(dob))
+            ));
         }
         if (ex.containsKey(dod)) {
-            inter.put("date_of_death", JsonAdapterImpl.pedigreeDateToDate(ex.getJSONObject(dod)));
+            inter.put("date_of_death", format.format(
+                JsonAdapterImpl.pedigreeDateToDate(ex.getJSONObject(dod))
+            ));
         }
         return inter;
     }

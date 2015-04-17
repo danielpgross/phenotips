@@ -175,8 +175,10 @@ public class ProcessingImpl implements Processing
         List<JSONObject> patientsJson = jsonAdapter.convert(familyContentsObject);
 
         for (JSONObject singlePatient : patientsJson) {
-            Patient patient = patientRepository.getPatientById(singlePatient.getString("id"));
-            patient.updateFromJSON(singlePatient);
+            if (singlePatient.containsKey("id")) {
+                Patient patient = patientRepository.getPatientById(singlePatient.getString("id"));
+                patient.updateFromJSON(singlePatient);
+            }
         }
     }
 
