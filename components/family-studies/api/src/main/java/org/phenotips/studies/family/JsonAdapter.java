@@ -4,8 +4,6 @@ import org.xwiki.component.annotation.Role;
 
 import java.util.List;
 
-import javax.validation.constraints.NotNull;
-
 import net.sf.json.JSONObject;
 
 /**
@@ -21,5 +19,5 @@ public interface JsonAdapter
      * This is a static method, but cannot be declared as such, given the necessity of injections.
      * @param toConvert cannot be null
      */
-    List<JSONObject> convert(@NotNull JSONObject toConvert);
+    List<JSONObject> convert(JSONObject toConvert);
 }

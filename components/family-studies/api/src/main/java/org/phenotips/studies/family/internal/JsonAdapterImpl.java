@@ -1,6 +1,28 @@
+/*
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ */
 package org.phenotips.studies.family.internal;
 
 import org.phenotips.configuration.RecordConfigurationManager;
+import org.phenotips.ontology.OntologyService;
+import org.phenotips.ontology.OntologyTerm;
+import org.phenotips.studies.family.JsonAdapter;
 
 import org.xwiki.component.annotation.Component;
 
@@ -11,12 +33,13 @@ import java.util.LinkedList;
 import java.util.List;
 
 import javax.inject.Inject;
-import javax.validation.constraints.NotNull;
+import javax.inject.Named;
 
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 /**
@@ -24,7 +47,7 @@ import net.sf.json.JSONObject;
  * org.phenotips.data.PatientDataController}.
  */
 @Component
-public class JsonAdapterImpl
+public class JsonAdapterImpl implements JsonAdapter
 {
     @Inject
     Logger logger;
@@ -32,7 +55,16 @@ public class JsonAdapterImpl
     @Inject
     private RecordConfigurationManager configurationManager;
 
-    public List<JSONObject> convert(@NotNull JSONObject toConvert)
+    @Inject
+    @Named("hpo")
+    private OntologyService hpoService;
+
+    @Inject
+    @Named("omim")
+    private OntologyService omimService;
+
+    @Override
+    public List<JSONObject> convert(JSONObject toConvert)
     {
         if (toConvert.containsKey("JSON_version") &&
             !StringUtils.equalsIgnoreCase(toConvert.getString("JSON_version"), "1.0"))
@@ -45,20 +77,40 @@ public class JsonAdapterImpl
         List<JSONObject> convertedPatients = new LinkedList<>();
         List<JSONObject> patientJson = PedigreeUtils.extractPatientJSONPropertiesFromPedigree(toConvert);
 
-        for (JSONObject singlePatient : patientJson) {
+        ServicesHolder holder = new ServicesHolder();
+        holder.hpo = hpoService;
+        holder.omim = omimService;
+        holder.dateFormat = dateFormat;
+        holder.logger = this.logger;
 
+        for (JSONObject singlePatient : patientJson) {
+            convertedPatients.add(JsonAdapterImpl.patientJsonToObject(singlePatient, holder));
         }
         return convertedPatients;
     }
 
-    private static JSONObject patientJsonToObject(JSONObject externalPatient, DateFormat dateFormat)
+    private class ServicesHolder
+    {
+        OntologyService hpo;
+        OntologyService omim;
+        DateFormat dateFormat;
+        Logger logger;
+    }
+
+    private static JSONObject patientJsonToObject(JSONObject externalPatient, ServicesHolder holder)
     {
         JSONObject internalPatient = new JSONObject();
 
-        internalPatient = exchangeIds(externalPatient, internalPatient);
-        internalPatient = exchangeBasicPatientData(externalPatient, internalPatient);
-        internalPatient = exchangeDates(externalPatient, internalPatient, dateFormat);
-                    
+        try {
+            internalPatient = exchangeIds(externalPatient, internalPatient);
+            internalPatient = exchangeBasicPatientData(externalPatient, internalPatient);
+            internalPatient = exchangeDates(externalPatient, internalPatient, holder.dateFormat);
+            internalPatient = exchangePhenotypes(externalPatient, internalPatient, holder.hpo);
+            internalPatient = exchangeDisorders(externalPatient, internalPatient, holder.omim);
+        } catch (Exception ex) {
+            holder.logger.warn("Could not convert patient. {}", ex.getMessage());
+        }
+
         return internalPatient;
     }
 
@@ -93,6 +145,44 @@ public class JsonAdapterImpl
         return inter;
     }
 
+    private static JSONObject exchangePhenotypes(JSONObject ex, JSONObject inter, OntologyService hpoService)
+        throws Exception
+    {
+        JSONArray internalTerms = new JSONArray();
+        JSONArray externalTerms = ex.optJSONArray("hpoTerms");
+
+        if (externalTerms != null) {
+            for (Object termIdObj : externalTerms) {
+                OntologyTerm term = hpoService.getTerm(termIdObj.toString());
+                if (term != null) {
+                    internalTerms.add(term.toJson());
+                }
+            }
+        }
+
+        inter.put("features", internalTerms);
+        return inter;
+    }
+
+    private static JSONObject exchangeDisorders(JSONObject ex, JSONObject inter, OntologyService omimService)
+        throws Exception
+    {
+        JSONArray internalTerms = new JSONArray();
+        JSONArray externalTerms = ex.optJSONArray("disorders");
+
+        if (externalTerms != null) {
+            for (Object termIdObj : externalTerms) {
+                OntologyTerm term = omimService.getTerm(termIdObj.toString());
+                if (term != null) {
+                    internalTerms.add(term.toJson());
+                }
+            }
+        }
+
+        inter.put("disorders", internalTerms);
+        return inter;
+    }
+
     /**
      * Used for converting a pedigree date to a {@link Date}.
      *
@@ -116,7 +206,4 @@ public class JsonAdapterImpl
         }
         return new Date(jodaDate.getMillis());
     }
-//    public static JSONObject exchangeIds(JSONObject ex, JSONObject inter) {}
-//    public static JSONObject exchangeIds(JSONObject ex, JSONObject inter) {}
-//    public static JSONObject exchangeIds(JSONObject ex, JSONObject inter) {}
 }
