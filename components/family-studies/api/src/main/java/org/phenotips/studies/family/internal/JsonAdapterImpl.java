@@ -167,7 +167,10 @@ public class JsonAdapterImpl implements JsonAdapter
             for (Object termIdObj : externalTerms) {
                 OntologyTerm term = hpoService.getTerm(termIdObj.toString());
                 if (term != null) {
-                    internalTerms.add(term.toJson());
+                    JSONObject termJson = JSONObject.fromObject(term.toJson());
+                    termJson.put("observed", "yes");
+                    termJson.put("type", "phenotype");
+                    internalTerms.add(termJson);
                 }
             }
         }
