@@ -659,7 +659,7 @@ var PersonVisuals = Class.create(AbstractPersonVisuals, {
             //this._linkLabel.click(function () { window.open(patientURL); })
             this._linkLabel.attr({ "href": patientURL, "target": "blank"});  // note: "blank" not "_blank" as Raphael processes this in its own way
             this._linkLabel.attr("fill", "#00498A");
-            this._linkLabel.node.id = "link_" + patientURL;
+            this._linkLabel.node.id = "link_" + this.getNode().getPhenotipsPatientId();
         }
         this.drawLabels();
     },
