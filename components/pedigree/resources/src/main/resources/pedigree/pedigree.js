@@ -58,7 +58,7 @@ var PedigreeEditor = Class.create({
         // load global pedigree preferences before a specific pedigre eis loaded, since
         // preferences kmay affect the way it is rendered, and load provcess triggers (re-)render internally
         this._preferencesManager.load( function() {
-                // load family page info and load the pedigree after that data is loaded 
+                // load family page info and load the pedigree after that data is loaded
                 this._familyData.load( this._saveLoadEngine.load.bind(this._saveLoadEngine) );
 
                 // generate various dialogues after preferences have been loaded
@@ -124,7 +124,7 @@ var PedigreeEditor = Class.create({
         this._afterSaveFunc = null;
         closeButton && closeButton.on("click", function(event) {
             var dontQuitFunc    = function() { window.onbeforeunload = onLeavePageFunc; };
-            var quitFunc        = function() { window.location=XWiki.currentDocument.getURL('edit'); };
+            var quitFunc        = function() { window.location=XWiki.currentDocument.getURL(XWiki.contextaction); };
             var saveAndQuitFunc = function() { editor._afterSaveFunc = quitFunc;
                                                editor.getSaveLoadEngine().save(); }
 

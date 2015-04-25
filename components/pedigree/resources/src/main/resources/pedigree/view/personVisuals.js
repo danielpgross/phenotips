@@ -95,11 +95,13 @@ var PersonVisuals = Class.create(AbstractPersonVisuals, {
         if(this.getNode().isProband()) {
             // add proband arrow TO PROBAND
             this._genderGraphics.push(this.generateProbandArrow());
+            this.getGenderShape().node.setAttribute("isProband", "true");
         }
         if (this.getNode().getPhenotipsPatientId() == editor.getGraph().getCurrentPatientId()) {
             // highlight current node
             this.getGenderShape().transform(["...s", 1.06]);
             this.getGenderShape().attr("stroke-width", 5.5);
+            this.getGenderShape().node.setAttribute("currentPatient", "true");
         } else if(this.getNode().isProband()) {
             // slightly highlight proband when it is NOT the current node
             this.getGenderShape().transform(["...s", 1.04]);
@@ -659,7 +661,6 @@ var PersonVisuals = Class.create(AbstractPersonVisuals, {
             //this._linkLabel.click(function () { window.open(patientURL); })
             this._linkLabel.attr({ "href": patientURL, "target": "blank"});  // note: "blank" not "_blank" as Raphael processes this in its own way
             this._linkLabel.attr("fill", "#00498A");
-            this._linkLabel.node.id = "link_" + patientURL;
         }
         this.drawLabels();
     },
@@ -840,6 +841,9 @@ var PersonVisuals = Class.create(AbstractPersonVisuals, {
             this._linkArea.toFront();
             this.getLinkLabel().toFront();
         }
+
+        this.onSetID(); // set IDs of SVG <text> and <a> elements
+
         //if(!editor.isUnsupportedBrowser())
         //    labels.flatten().insertBefore(this.getHoverBox().getFrontElements().flatten());
     },
@@ -853,6 +857,19 @@ var PersonVisuals = Class.create(AbstractPersonVisuals, {
         if (this.getChildlessStatusLabel())
             selectionOffset = selectionOffset/2;
         return selectionOffset;        
+    },
+
+    /**
+     * Updates node's <text> and <a> id's when node ID changes
+     * @method onSetID
+     */
+    onSetID: function($super, id) {
+        $super(id);
+        var labels = this.getLabels();
+        for (var i = 0; i < labels.length; i++) {
+            labels[i].node.setAttribute("pedigreeNodeID", this.getNode().getID());
+        }
+        this._linkLabel && (this._linkLabel.node.setAttribute("pedigreeLinkedPatient", this.getNode().getPhenotipsPatientId()));
     },
 
     /**
