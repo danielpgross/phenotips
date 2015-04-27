@@ -100,7 +100,7 @@ public class ValidationImpl implements Validation
             isInFamily = this.isInFamily(familyDoc, patientId);
         }
         PedigreeUtils.Pedigree pedigree = PedigreeUtils.getPedigree(patientDoc);
-        if ((pedigree == null || pedigree.data.isEmpty()) || isInFamily) {
+        if ((pedigree == null || pedigree.isEmpty()) || isInFamily) {
             if (!isInFamily && familyDoc != null) {
                 return this.checkFamilyAccessWithResponse(familyDoc);
             }

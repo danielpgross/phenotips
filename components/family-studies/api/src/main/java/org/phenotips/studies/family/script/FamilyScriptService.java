@@ -97,7 +97,7 @@ public class FamilyScriptService implements ScriptService
             return familyStatusResponse(familyDoc, utils.getFamilyMembers(familyDoc));
         } catch (XWikiException ex) {
             logger.error("Could not get patient's family {}", ex.getMessage());
-            return new JSONObject();
+            return new JSONObject(true);
         }
     }
 
@@ -109,7 +109,7 @@ public class FamilyScriptService implements ScriptService
         try {
             return validation.canAddToFamily(thisId, otherId).asVerification();
         } catch (XWikiException ex) {
-            return new JSONObject();
+            return new JSONObject(true);
         }
     }
 
@@ -118,7 +118,7 @@ public class FamilyScriptService implements ScriptService
         try {
             return this.processing.processPatientPedigree(anchorId, JSONObject.fromObject(json), image).asProcessing();
         } catch (Exception ex) {
-            return new JSONObject();
+            return new JSONObject(true);
         }
     }
 

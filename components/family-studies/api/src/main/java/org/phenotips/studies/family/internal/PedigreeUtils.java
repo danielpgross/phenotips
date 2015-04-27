@@ -73,6 +73,7 @@ public class PedigreeUtils
     {
         BaseObject pedigreeObject = document.getXObject(PedigreeUtils.PEDIGREE_CLASS);
         if (image != null) {
+            image = SvgUpdater.setPatientStylesInSvg(image, document.getDocumentReference().getName());
             pedigreeObject.set("image", image, context);
         }
         pedigreeObject.set("data", pedigree.toString(), context);
@@ -117,5 +118,13 @@ public class PedigreeUtils
         // these are package local on purpose
         JSONObject data;
         String image = "";
+
+        /**
+         * Checks if the `data` field is empty.
+         * @return true if data is {@link null} or if {@link JSONObject#isEmpty()} returns true
+         */
+        boolean isEmpty() {
+            return this.data == null || this.data.isEmpty();
+        }
     }
 }
