@@ -64,7 +64,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class MonarchPatientScorerTest
+public class RemoteMonarchPatientScorerTest
 {
     private ConfigurationSource configuration;
 
@@ -87,7 +87,7 @@ public class MonarchPatientScorerTest
 
     @Rule
     public final MockitoComponentMockingRule<PatientScorer> mocker =
-        new MockitoComponentMockingRule<PatientScorer>(MonarchPatientScorer.class);
+        new MockitoComponentMockingRule<PatientScorer>(RemoteMonarchPatientScorer.class);
 
     @Before
     public void setup() throws CacheException, ComponentLookupException

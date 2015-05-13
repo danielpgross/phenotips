@@ -109,7 +109,18 @@
         <enabled>true</enabled>
       </releases>
       <snapshots>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>owltools</id>
+      <name>OWLTools</name>
+      <url>http://code.berkeleybop.org/maven/repository/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
       </snapshots>
     </repository>
   </repositories>

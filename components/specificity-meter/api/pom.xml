@@ -86,6 +86,11 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.bbop</groupId>
+      <artifactId>OWLTools-Sim</artifactId>
+      <version>0.2.1</version>
+    </dependency>
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.xwiki.commons</groupId>

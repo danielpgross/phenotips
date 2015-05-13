@@ -68,7 +68,7 @@ import net.sf.json.JSONSerializer;
 @Component
 @Named("monarch")
 @Singleton
-public class MonarchPatientScorer implements PatientScorer, Initializable
+public class RemoteMonarchPatientScorer implements PatientScorer, Initializable
 {
     private static final String SCORER_NAME = "monarchinitiative.org";
 
