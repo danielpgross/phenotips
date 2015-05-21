@@ -57,21 +57,34 @@ public class LocalMonarchPatientScorer implements PatientScorer, Initializable
     @Override
     public void initialize() throws InitializationException
     {
+        initialize(
+                new File("/Users/dgross/Desktop/monarch-local/phenotype-ontologies-read-only/server/all.owl"),
+                "/Users/dgross/Desktop/monarch-local/phenotype-ontologies-read-only/server/owlsim.cache",
+                new File("/Users/dgross/Desktop/monarch-local/phenotype-ontologies-read-only/server/ic-cache.owl")
+        );
+    }
+
+    public void initialize(File ontologyFile, String lcsCachePath, File icOntologyFile) throws InitializationException
+    {
         FastOwlSimFactory fastOwlSimFactory = new FastOwlSimFactory();
 
         OWLOntologyManager ontologyManager = OWLManager.createOWLOntologyManager();
         OWLOntology ontology = null;
+
+        // Reset to null in case we are re-initializing
+        owlSim = null;
+        owlGraph = null;
         try {
-            ontology = ontologyManager.loadOntologyFromOntologyDocument(new File("/Users/dgross/Desktop/monarch-local/phenotype-ontologies-read-only/server/all.owl"));
-            this.owlSim = fastOwlSimFactory.createOwlSim(ontology);
+            ontology = ontologyManager.loadOntologyFromOntologyDocument(ontologyFile);
+            owlSim = fastOwlSimFactory.createOwlSim(ontology);
             owlSim.createElementAttributeMapFromOntology();
 
-            owlSim.loadLCSCache("/Users/dgross/Desktop/monarch-local/phenotype-ontologies-read-only/server/owlsim.cache");
+            owlSim.loadLCSCache(lcsCachePath);
 
-            OWLOntology icOntology = ontologyManager.loadOntologyFromOntologyDocument(new File("/Users/dgross/Desktop/monarch-local/phenotype-ontologies-read-only/server/ic-cache.owl"));
+            OWLOntology icOntology = ontologyManager.loadOntologyFromOntologyDocument(icOntologyFile);
             owlSim.setInformationContentFromOntology(icOntology);
 
-            this.owlGraph = new OWLGraphWrapper(ontology);
+            owlGraph = new OWLGraphWrapper(ontology);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -112,5 +125,15 @@ public class LocalMonarchPatientScorer implements PatientScorer, Initializable
     private Date now()
     {
         return Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.ROOT).getTime();
+    }
+
+    /* Below are testing/PoC functions that can be deleted once no longer needed */
+    private void reloadDataFromCopy() throws InitializationException
+    {
+        initialize(
+                new File("/Users/dgross/Desktop/monarch-local/phenotype-ontologies-read-only-2/server/all.owl"),
+                "/Users/dgross/Desktop/monarch-local/phenotype-ontologies-read-only-2/server/owlsim.cache",
+                new File("/Users/dgross/Desktop/monarch-local/phenotype-ontologies-read-only-2/server/ic-cache.owl")
+        );
     }
 }
