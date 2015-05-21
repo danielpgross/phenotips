@@ -31,11 +31,13 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.component.phase.Initializable;
 import org.xwiki.component.phase.InitializationException;
+import org.xwiki.environment.Environment;
 import owltools.graph.OWLGraphWrapper;
 import owltools.sim2.FastOwlSimFactory;
 import owltools.sim2.OwlSim;
 import owltools.sim2.UnknownOWLClassException;
 
+import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 import java.io.File;
@@ -54,13 +56,16 @@ public class LocalMonarchPatientScorer implements PatientScorer, Initializable
     private OwlSim owlSim;
     private OWLGraphWrapper owlGraph;
 
+    @Inject
+    private Environment environment; // org.xwiki.environment.Environment
+
     @Override
     public void initialize() throws InitializationException
     {
         initialize(
-                new File("/Users/dgross/Desktop/monarch-local/phenotype-ontologies-read-only/server/all.owl"),
-                "/Users/dgross/Desktop/monarch-local/phenotype-ontologies-read-only/server/owlsim.cache",
-                new File("/Users/dgross/Desktop/monarch-local/phenotype-ontologies-read-only/server/ic-cache.owl")
+                new File(new File(this.environment.getPermanentDirectory(), "monarch-scorer"), "all.owl"),
+                new File(new File(this.environment.getPermanentDirectory(), "monarch-scorer"), "owlsim.cache").toString(),
+                new File(new File(this.environment.getPermanentDirectory(), "monarch-scorer"), "ic-cache.owl")
         );
     }
 
