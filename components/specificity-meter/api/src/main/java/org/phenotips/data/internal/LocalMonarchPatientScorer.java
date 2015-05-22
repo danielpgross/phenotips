@@ -36,6 +36,7 @@ import owltools.graph.OWLGraphWrapper;
 import owltools.sim2.FastOwlSimFactory;
 import owltools.sim2.OwlSim;
 import owltools.sim2.UnknownOWLClassException;
+import org.xwiki.configuration.ConfigurationSource;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -58,6 +59,10 @@ public class LocalMonarchPatientScorer implements PatientScorer, Initializable
 
     @Inject
     private Environment environment; // org.xwiki.environment.Environment
+
+    @Inject
+    @Named("xwikiproperties")
+    private ConfigurationSource configuration;
 
     @Override
     public void initialize() throws InitializationException
@@ -104,27 +109,47 @@ public class LocalMonarchPatientScorer implements PatientScorer, Initializable
     @Override
     public double getScore(Patient patient)
     {
-        Set atts = new HashSet<OWLClass>();
+        Double scaledScore = 0.0;
+
+        Set presentFeatures = new HashSet<OWLClass>();
+        // Union of present and absent features
+        Set allFeatures = new HashSet<OWLClass>();
         for (Feature f : patient.getFeatures()) {
             if (StringUtils.isNotEmpty(f.getId())) {
                 OWLClass featureClass = owlGraph.getOWLClassByIdentifier(f.getId(), true);
                 if (featureClass != null) {
-                    atts.add(featureClass);
+                    allFeatures.add(featureClass);
+                    if (f.isPresent()) {
+                        presentFeatures.add(featureClass);
+                    }
                 }
             }
         }
 
-        // Use the root term of the HPO
-        OWLClass simRoot = owlGraph.getOWLClassByIdentifier("HP:0000118", true);
-
-        Double score = null;
         try {
-            score = this.owlSim.calculateSubgraphAnnotationSufficiencyForAttributeSet(atts, simRoot);
-        } catch (UnknownOWLClassException e) {
+            Double overallPresentFeaturesScore = owlSim.calculateOverallAnnotationSufficiencyForAttributeSet(presentFeatures);
+            Double overallFeaturesScore = owlSim.calculateOverallAnnotationSufficiencyForAttributeSet(allFeatures);
+
+            String subgraphRootsStr = this.configuration.getProperty("phenotips.patientScoring.monarch.subgraphRoots", "HP:0000924, HP:0000707, HP:0000152, HP:0001574, HP:0000478, HP:0001626, HP:0001939, HP:0000119, HP:0001438, HP:0003011, HP:0002664, HP:0001871, HP:0002715, HP:0000818, HP:0002086, HP:0000598, HP:0003549, HP:0001197, HP:0001507, HP:0000769");
+            Double subgraphAggScore = 0.0;
+            Integer n = 0;
+            for (String termStr : subgraphRootsStr.split(", ")) {
+                OWLClass term = owlGraph.getOWLClassByIdentifier(termStr, true);
+                Double subgraphScore = owlSim.calculateSubgraphAnnotationSufficiencyForAttributeSet(allFeatures, term);
+                // Add to the average
+                subgraphAggScore += (subgraphScore - subgraphAggScore) / ++n;
+            }
+
+
+            Double subgraphAggScoreScalingFactor = Double.parseDouble(this.configuration.getProperty("phenotips.patientScoring.monarch.subgraphAggScoreScalingFactor", "0.5"));
+
+            scaledScore = (overallFeaturesScore + overallPresentFeaturesScore) / 2 + (subgraphAggScore * subgraphAggScoreScalingFactor) / (1 + subgraphAggScoreScalingFactor);
+        }
+        catch (UnknownOWLClassException e) {
             e.printStackTrace();
         }
 
-        return score;
+        return scaledScore;
     }
 
     private Date now()
