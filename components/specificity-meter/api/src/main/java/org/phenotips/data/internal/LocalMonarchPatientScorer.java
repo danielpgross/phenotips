@@ -143,7 +143,7 @@ public class LocalMonarchPatientScorer implements PatientScorer, Initializable
 
             Double subgraphAggScoreScalingFactor = Double.parseDouble(this.configuration.getProperty("phenotips.patientScoring.monarch.subgraphAggScoreScalingFactor", "0.5"));
 
-            scaledScore = (overallFeaturesScore + overallPresentFeaturesScore) / 2 + (subgraphAggScore * subgraphAggScoreScalingFactor) / (1 + subgraphAggScoreScalingFactor);
+            scaledScore = ((overallFeaturesScore + overallPresentFeaturesScore) / 2 + (subgraphAggScore * subgraphAggScoreScalingFactor)) / (1 + subgraphAggScoreScalingFactor);
         }
         catch (UnknownOWLClassException e) {
             e.printStackTrace();
