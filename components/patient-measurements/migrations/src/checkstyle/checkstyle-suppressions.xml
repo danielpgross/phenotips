@@ -1,4 +1,6 @@
-/*
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
  * See the NOTICE file distributed with this work for additional
  * information regarding copyright ownership.
  *
@@ -14,34 +16,14 @@
  *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/
- */
-package org.phenotips.measurements.internal;
+-->
 
-import org.xwiki.component.annotation.Component;
+<!DOCTYPE suppressions PUBLIC
+    "-//Puppy Crawl//DTD Suppressions 1.0//EN"
+    "http://www.puppycrawl.com/dtds/suppressions_1_0.dtd">
 
-import javax.inject.Named;
-import javax.inject.Singleton;
-
-/**
- * Inner Canthal distance measurements, in centimeters.
- *
- * @version $Id$
- * @since 1.0M3
- */
-@Component
-@Named("icd")
-@Singleton
-public class InnerCanthalDistanceMeasurementHandler extends AbstractMeasurementHandler
-{
-    @Override
-    public String getName()
-    {
-        return "icd";
-    }
-
-    @Override
-    public String getUnit()
-    {
-        return "cm";
-    }
-}
+<suppressions>
+  <!-- R71291PhenoTips1969DataMigration fails this check by 1; it does not make sense to fix it given that it is a
+  migrator and the ClassFanOut is a guideline -->
+  <suppress checks="ClassFanOutComplexity" files="R71291PhenoTips1969DataMigration.java"/>
+</suppressions>
